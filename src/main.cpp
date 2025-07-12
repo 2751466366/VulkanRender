@@ -1,32 +1,19 @@
-#include "GlfwWindowsWrapper.h"
-#include "GraphicsSync.h"
-#include "GraphicsCmdBuf.h"
-#include <sstream>
+#include "GlfwGeneral.hpp"
+#include "EasyVulkan.hpp"
 
-
+#define WIDTH 1280
+#define HEIGHT 720
 int main()
 {
-    if (!GlfwWindowsWrapper::GetInstance()->InitializeWindow({ 1280,720 }))
-        return -1;
+	if (!InitializeWindow({ WIDTH, HEIGHT }))
+		return -1;
+    while (!glfwWindowShouldClose(pWindow)) {
 
-    GraphicsCmdBuf commandBuffer;
-    GraphicsCmdPool commandPool(GraphicsBase::Base()->QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-    commandPool.AllocateBuffer(commandBuffer);
-
-    GraphicsFence fence(VK_FENCE_CREATE_SIGNALED_BIT); //以置位状态创建栅栏
-    GraphicsSemaphore semaphore_imageIsAvailable;
-    GraphicsSemaphore semaphore_renderingIsOver;
-    while (!glfwWindowShouldClose(GlfwWindowsWrapper::GetInstance()->pWindow)) {
-        fence.WaitAndReset();
-        GraphicsBase::Base()->SwapImage(semaphore_imageIsAvailable.handle);
-
-        commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         /*渲染过程，待填充*/
-        commandBuffer.End();
 
         glfwPollEvents();
-        GlfwWindowsWrapper::GetInstance()->TitleFps();
+        TitleFps();
     }
-    GlfwWindowsWrapper::GetInstance()->TerminateWindow();
+    TerminateWindow();
     return 0;
 }

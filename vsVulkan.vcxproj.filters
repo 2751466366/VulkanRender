@@ -18,21 +18,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\GraphicsBase.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\GlfwWindowsWrapper.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\GraphicsSync.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\GraphicsMemory.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\GraphicsCmdBuf.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opensource\meshoptimizer.h">
@@ -44,28 +29,22 @@
     <ClInclude Include="opensource\stb_image.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\vkWrapper\GraphicsBase.h">
+    <ClInclude Include="inc\vkWrapper\EasyVKStart.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\GlfwWindowsWrapper.h">
+    <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\vkWrapper\GraphicsSync.h">
+    <ClInclude Include="inc\vkWrapper\GlfwGeneral.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\Common.h">
+    <ClInclude Include="inc\vkWrapper\VKBase.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\vkWrapper\GraphicsMemory.h">
+    <ClInclude Include="inc\vkWrapper\VKBase+.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\vkWrapper\GraphicsCmdBuf.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\vkWrapper\PipeLine.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\vkWrapper\RenderPass.h">
+    <ClInclude Include="inc\vkWrapper\VKFormat.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

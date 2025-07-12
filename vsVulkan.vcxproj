@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\GitProj\vsVulkan\opensource;D:\GitProj\vsVulkan\inc;D:\GitProj\vsVulkan\inc\vkWrapper;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -112,7 +112,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\GitProj\vsVulkan\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>.\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;GKlib.lib;glfw3.lib;meshoptimizer.lib;vulkan-1.lib;metis.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -136,22 +136,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\GraphicsCmdBuf.cpp" />
-    <ClCompile Include="src\GraphicsMemory.cpp" />
-    <ClCompile Include="src\GraphicsSync.cpp" />
-    <ClCompile Include="src\GlfwWindowsWrapper.cpp" />
-    <ClCompile Include="src\GraphicsBase.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="inc\Common.h" />
-    <ClInclude Include="inc\GlfwWindowsWrapper.h" />
-    <ClInclude Include="inc\vkWrapper\GraphicsBase.h" />
-    <ClInclude Include="inc\vkWrapper\GraphicsCmdBuf.h" />
-    <ClInclude Include="inc\vkWrapper\GraphicsMemory.h" />
-    <ClInclude Include="inc\vkWrapper\GraphicsSync.h" />
-    <ClInclude Include="inc\vkWrapper\PipeLine.h" />
-    <ClInclude Include="inc\vkWrapper\RenderPass.h" />
+    <ClInclude Include="inc\vkWrapper\EasyVKStart.h" />
+    <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp" />
+    <ClInclude Include="inc\vkWrapper\GlfwGeneral.hpp" />
+    <ClInclude Include="inc\vkWrapper\VKBase+.h" />
+    <ClInclude Include="inc\vkWrapper\VKBase.h" />
+    <ClInclude Include="inc\vkWrapper\VKFormat.h" />
     <ClInclude Include="opensource\meshoptimizer.h" />
     <ClInclude Include="opensource\metis.h" />
     <ClInclude Include="opensource\stb_image.h" />
