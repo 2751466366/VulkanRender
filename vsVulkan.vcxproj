@@ -139,6 +139,7 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\RenderPassWrapper.hpp" />
     <ClInclude Include="inc\vkWrapper\EasyVKStart.h" />
     <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp" />
     <ClInclude Include="inc\vkWrapper\GlfwGeneral.hpp" />

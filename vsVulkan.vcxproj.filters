@@ -47,6 +47,9 @@
     <ClInclude Include="inc\vkWrapper\VKFormat.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\RenderPassWrapper.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\assimp.lib" />
