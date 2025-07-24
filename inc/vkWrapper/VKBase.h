@@ -99,10 +99,10 @@ namespace vulkan {
 
 		VkDebugUtilsMessengerEXT debugMessenger;
 
-		std::vector<void(*)()> callbacks_createSwapchain;
-		std::vector<void(*)()> callbacks_destroySwapchain;
-		std::vector<void(*)()> callbacks_createDevice;
-		std::vector<void(*)()> callbacks_destroyDevice;
+		std::vector<std::function<void()>> callbacks_createSwapchain;
+		std::vector<std::function<void()>> callbacks_destroySwapchain;
+		std::vector<std::function<void()>> callbacks_createDevice;
+		std::vector<std::function<void()>> callbacks_destroyDevice;
 
 		graphicsBasePlus* pPlus = nullptr;//Pimpl
 		//Static
@@ -317,7 +317,7 @@ namespace vulkan {
 					return;
 			container.push_back(name);
 		}
-		static void ExecuteCallbacks(std::vector<void(*)()>& callbacks) {
+		static void ExecuteCallbacks(std::vector<std::function<void()>>& callbacks) {
 			for (size_t size = callbacks.size(), i = 0; i < size; i++)
 				callbacks[i]();
 			//for (auto& i : callbacks) i();                               //Not safe
@@ -421,17 +421,17 @@ namespace vulkan {
 		}
 
 		//Non-const Function
-		void AddCallback_CreateSwapchain(void(*function)()) {
-			callbacks_createSwapchain.push_back(function);
+		void AddCallback_CreateSwapchain(std::function<void()> callback) {
+			callbacks_createSwapchain.push_back(callback);
 		}
-		void AddCallback_DestroySwapchain(void(*function)()) {
-			callbacks_destroySwapchain.push_back(function);
+		void AddCallback_DestroySwapchain(std::function<void()> callback) {
+			callbacks_destroySwapchain.push_back(callback);
 		}
-		void AddCallback_CreateDevice(void(*function)()) {
-			callbacks_createDevice.push_back(function);
+		void AddCallback_CreateDevice(std::function<void()> callback) {
+			callbacks_createDevice.push_back(callback);
 		}
-		void AddCallback_DestroyDevice(void(*function)()) {
-			callbacks_destroyDevice.push_back(function);
+		void AddCallback_DestroyDevice(std::function<void()> callback) {
+			callbacks_destroyDevice.push_back(callback);
 		}
 		//                    Create Instance
 		void AddInstanceLayer(const char* layerName) {

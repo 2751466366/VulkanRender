@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -139,6 +139,10 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\camera\Camera.hpp" />
+    <ClInclude Include="inc\common.h" />
+    <ClInclude Include="inc\mesh\Mesh.hpp" />
+    <ClInclude Include="inc\RenderPassWrapper.hpp" />
     <ClInclude Include="inc\vkWrapper\EasyVKStart.h" />
     <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp" />
     <ClInclude Include="inc\vkWrapper\GlfwGeneral.hpp" />
@@ -156,6 +160,12 @@
     <Library Include="lib\meshoptimizer.lib" />
     <Library Include="lib\metis.lib" />
     <Library Include="lib\vulkan-1.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\Composition.frag" />
+    <None Include="shaders\Composition.vert" />
+    <None Include="shaders\GBuffer.frag" />
+    <None Include="shaders\Gbuffer.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
