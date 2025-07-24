@@ -1,5 +1,4 @@
-#version 460
-#pragma shader_stage(vertex)
+#version 450 core
 
 vec2 positions[4] = {
 	{-1,-1},
