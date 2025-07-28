@@ -1273,6 +1273,13 @@ namespace vulkan {
 			memcpy(pData_dst, pData_src, size_t(size));
 			return UnmapMemory(size, offset);
 		}
+		result_t BufferData(VkDeviceSize buf_offset, const void* pData_src, VkDeviceSize size, VkDeviceSize offset = 0) const {
+			void* pData_dst;
+			if (VkResult result = MapMemory(pData_dst, size, offset))
+				return result;
+			memcpy((char *)pData_dst + buf_offset, pData_src, size_t(size));
+			return UnmapMemory(size, offset);
+		}
 		result_t BufferData(const auto& data_src) const {
 			return BufferData(&data_src, sizeof data_src);
 		}

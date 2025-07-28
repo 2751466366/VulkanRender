@@ -70,5 +70,11 @@ public:
         model = glm::translate(model, pos);
     }
 
-    void Draw();
+    void Draw(commandBuffer& commandBuffer)
+    {
+        VkDeviceSize offset = 0;
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffer.Address(), &offset);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, 36, 1, 0, 0, 0);
+    }
 };

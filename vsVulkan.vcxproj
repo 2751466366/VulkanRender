@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -143,6 +143,7 @@
     <ClInclude Include="inc\common.h" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
     <ClInclude Include="inc\RenderPassWrapper.hpp" />
+    <ClInclude Include="inc\texture\TextureCube.hpp" />
     <ClInclude Include="inc\vkWrapper\EasyVKStart.h" />
     <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp" />
     <ClInclude Include="inc\vkWrapper\GlfwGeneral.hpp" />
@@ -166,6 +167,14 @@
     <None Include="shaders\Composition.vert" />
     <None Include="shaders\GBuffer.frag" />
     <None Include="shaders\Gbuffer.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resource\texture\skybox\back.jpg" />
+    <Image Include="resource\texture\skybox\bottom.jpg" />
+    <Image Include="resource\texture\skybox\front.jpg" />
+    <Image Include="resource\texture\skybox\left.jpg" />
+    <Image Include="resource\texture\skybox\right.jpg" />
+    <Image Include="resource\texture\skybox\top.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

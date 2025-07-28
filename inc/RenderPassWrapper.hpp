@@ -164,11 +164,12 @@ public:
 				mFramebuffers[i].Create(framebufferCreateInfo);
 		};
 		auto DestroyFramebuffers = [&] {
-			mColorAttachments[0].~colorAttachment();
-			mColorAttachments[1].~colorAttachment();
-			mColorAttachments[2].~colorAttachment();
-			//mColorAttachments[3].~colorAttachment();
-			mDepthStencilAttachments[0].~depthStencilAttachment();
+			for (int i = 0; i < mColorAttachments.size(); i++) {
+				mColorAttachments[i].~colorAttachment();
+			}
+			for (int i = 0; i < mDepthStencilAttachments.size(); i++) {
+				mDepthStencilAttachments[i].~depthStencilAttachment();
+			}
 			mFramebuffers.clear();
 		};
 		CreateFramebuffers();
@@ -193,8 +194,8 @@ public:
 		pipelineLayout_gBuffer.Create(pipelineLayoutCreateInfo);
 		//Composition
 		VkDescriptorSetLayoutBinding descriptorSetLayoutBindings_composition[] = {
-			//{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
-			{ 0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3, VK_SHADER_STAGE_FRAGMENT_BIT }
+			{ 0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }
 		};
 		descriptorSetLayoutCreateInfo.bindingCount = (sizeof(descriptorSetLayoutBindings_composition) / sizeof(VkDescriptorSetLayoutBinding));
 		descriptorSetLayoutCreateInfo.pBindings = descriptorSetLayoutBindings_composition;
