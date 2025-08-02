@@ -167,7 +167,6 @@ public:
 				framebuffers[i].Create(framebufferCreateInfo);
 		};
 		auto DestroyFramebuffers = [&] {
-			std::cout << "cdl destroy" << std::endl;
 			for (int i = 0; i < colorAttachments.size(); i++) {
 				colorAttachments[i].~colorAttachment();
 			}
