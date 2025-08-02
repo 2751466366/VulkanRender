@@ -20,16 +20,16 @@ private:
 			newLayout,
 			VK_QUEUE_FAMILY_IGNORED,
 			VK_QUEUE_FAMILY_IGNORED,
-			mImageMemory.Image(),
+			imageMemory.Image(),
 			range
 		};
 		vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0,
 			0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 	}
 public:
-	imageView mImageView;
-	imageMemory mImageMemory;
-	sampler mSample;
+	imageView imageView;
+	imageMemory imageMemory;
+	sampler sample;
 
 	TexuteCube() = default;
 	~TexuteCube() = default;
@@ -67,7 +67,7 @@ public:
 		imgInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imgInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imgInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-		mImageMemory.Create(imgInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		imageMemory.Create(imgInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		// create temp buffer for loading all pictures data
 		const VkDeviceSize layerSize = w * h * comp;
@@ -105,7 +105,7 @@ public:
 			region.bufferOffset = face * layerSize;
 			regions.push_back(region);
 		}
-		vkCmdCopyBufferToImage(commandBuffer, tempBuf.Buffer(), mImageMemory.Image(),
+		vkCmdCopyBufferToImage(commandBuffer, tempBuf.Buffer(), imageMemory.Image(),
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			regions.size(), regions.data());
 
@@ -126,8 +126,8 @@ public:
 									int32_t(h >> level), 1 };
 
 			vkCmdBlitImage(commandBuffer,
-				mImageMemory.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				mImageMemory.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				imageMemory.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				imageMemory.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1, &blit,
 				VK_FILTER_LINEAR);
 
@@ -157,8 +157,8 @@ public:
 		view.subresourceRange.levelCount = mipLevels;
 		view.subresourceRange.baseArrayLayer = 0;
 		view.subresourceRange.layerCount = 6;
-		view.image = mImageMemory.Image();
-		mImageView.Create(view);
+		view.image = imageMemory.Image();
+		imageView.Create(view);
 
 		VkSamplerCreateInfo samp{};
 		samp.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -170,6 +170,6 @@ public:
 		samp.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samp.minLod = 0.0f;
 		samp.maxLod = static_cast<float>(mipLevels);
-		mSample.Create(samp);
+		sample.Create(samp);
 	}
 };

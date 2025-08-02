@@ -1945,6 +1945,9 @@ namespace vulkan {
 		descriptorPool(uint32_t maxSetCount, arrayRef<const VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags flags = 0) {
 			Create(maxSetCount, poolSizes, flags);
 		}
+		descriptorPool(uint32_t maxSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags flags = 0) {
+			Create(maxSetCount, poolSizes, flags);
+		}
 		descriptorPool(descriptorPool&& other) noexcept { MoveHandle; }
 		~descriptorPool() { DestroyHandleBy(vkDestroyDescriptorPool); }
 		//Getter
@@ -2007,6 +2010,15 @@ namespace vulkan {
 				.maxSets = maxSetCount,
 				.poolSizeCount = uint32_t(poolSizes.Count()),
 				.pPoolSizes = poolSizes.Pointer()
+			};
+			return Create(createInfo);
+		}
+		result_t Create(uint32_t maxSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags flags = 0) {
+			VkDescriptorPoolCreateInfo createInfo = {
+				.flags = flags,
+				.maxSets = maxSetCount,
+				.poolSizeCount = uint32_t(poolSizes.size()),
+				.pPoolSizes = poolSizes.data()
 			};
 			return Create(createInfo);
 		}

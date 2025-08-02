@@ -1,5 +1,4 @@
 #pragma once
-#include "EasyVKStart.h"
 
 //Vulkan SDK's vk_format_utils.h offers more detailed information.
 struct formatInfo {

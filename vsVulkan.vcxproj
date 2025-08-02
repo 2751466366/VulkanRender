@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -141,8 +141,10 @@
   <ItemGroup>
     <ClInclude Include="inc\camera\Camera.hpp" />
     <ClInclude Include="inc\common.h" />
+    <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
-    <ClInclude Include="inc\RenderPassWrapper.hpp" />
+    <ClInclude Include="inc\render\PipelineLayoutRecorder.hpp" />
+    <ClInclude Include="inc\render\RenderPassWrapper.hpp" />
     <ClInclude Include="inc\texture\TextureCube.hpp" />
     <ClInclude Include="inc\vkWrapper\EasyVKStart.h" />
     <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp" />
@@ -163,6 +165,12 @@
     <Library Include="lib\vulkan-1.lib" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="resource\texture\hdr\appart.hdr" />
+    <None Include="resource\texture\hdr\canyon.hdr" />
+    <None Include="resource\texture\hdr\circus.hdr" />
+    <None Include="resource\texture\hdr\loft.hdr" />
+    <None Include="resource\texture\hdr\path.hdr" />
+    <None Include="resource\texture\hdr\pisa.hdr" />
     <None Include="shaders\Composition.frag" />
     <None Include="shaders\Composition.vert" />
     <None Include="shaders\GBuffer.frag" />

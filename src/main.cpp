@@ -1,4 +1,5 @@
 #include "GlfwGeneral.hpp"
+#include "PipelineLayoutRecorder.hpp"
 #include "RenderPassWrapper.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
@@ -23,6 +24,8 @@ int main()
     glfwSetCursorPosCallback(pWindow, mouse_callback);
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+    PipelineLayoutRecorder recorder;
+
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
 
@@ -33,13 +36,17 @@ int main()
 
     DeferredRenderPassWrapper dfRp;
     dfRp.CreateRenderPass();
-    dfRp.CreatePipelineLayout();
+    dfRp.CreatePipelineLayout(recorder);
     dfRp.CreatePipeline();
 
     uniformBuffer uniformBufferMat(sizeof(glm::mat4) * 3, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     uniformBufferMat.TransferData(&cube.model, sizeof(glm::mat4), 0);
     uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), sizeof(glm::mat4));
     uniformBufferMat.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4) * 2);
+
+    uniformBuffer uniformBufferInvMat(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    uniformBufferInvMat.TransferData(&camera.invView, sizeof(glm::mat4), 0);
+    uniformBufferInvMat.TransferData(&camera.invProj, sizeof(glm::mat4), sizeof(glm::mat4));
 
     fence fence;
 	semaphore semaphore_imageIsAvailable;
@@ -48,12 +55,14 @@ int main()
 	commandPool commandPool(graphicsBase::Base().QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 	commandPool.AllocateBuffers(commandBuffer);
 
-    VkDescriptorPoolSize descriptorPoolSizes[] = {
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
+    /*VkDescriptorPoolSize descriptorPoolSizes[] = {
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 },
         { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
     };
-    descriptorPool descriptorPool(2, descriptorPoolSizes);
+    descriptorPool descriptorPool(2, descriptorPoolSizes);*/
+    std::vector<VkDescriptorPoolSize> descriptorPoolSizes = recorder.GetDescriptorPoolSize();
+    descriptorPool descriptorPool(recorder.GetSetsNum(), descriptorPoolSizes);
     descriptorSet descriptorSet_transform;
     descriptorSet descriptorSet_inputAttach;
     descriptorPool.AllocateSets(descriptorSet_transform, dfRp.descriptorSetLayout_gBuffer);
@@ -66,22 +75,28 @@ int main()
     descriptorSet_transform.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
     auto UpdateDescriptorSet_InputAttachments = [&] {
         VkDescriptorImageInfo imageInfos[] = {
-        	{ VK_NULL_HANDLE, dfRp.mColorAttachments[0].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
-        	{ VK_NULL_HANDLE, dfRp.mColorAttachments[1].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
-            { VK_NULL_HANDLE, dfRp.mColorAttachments[2].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
+        	{ VK_NULL_HANDLE, dfRp.colorAttachments[0].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+        	{ VK_NULL_HANDLE, dfRp.colorAttachments[1].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+            { VK_NULL_HANDLE, dfRp.colorAttachments[2].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
         descriptorSet_inputAttach.Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
         VkDescriptorImageInfo textureInfo[] = {
-            { skyBox.mSample, skyBox.mImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
+            { skyBox.sample, skyBox.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
         descriptorSet_inputAttach.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
     };
     graphicsBase::Base().AddCallback_CreateSwapchain(UpdateDescriptorSet_InputAttachments);
     UpdateDescriptorSet_InputAttachments();
+    VkDescriptorBufferInfo bufferInfoInvMat = {
+        .buffer = uniformBufferInvMat,
+        .offset = 0,
+        .range = VK_WHOLE_SIZE
+    };
+    descriptorSet_inputAttach.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
 
     VkClearValue clearValues[] = {
         {.color = {} },
-        {.color = {} },
+        {.color = {0.0, 0.0, 0.0, 1.0} }, // w represents depth
         {.color = {} },
         {.color = {} },
         {.depthStencil = { 1.f, 0 } }
@@ -95,22 +110,23 @@ int main()
 
         camera.updateView();
         uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), sizeof(glm::mat4));
+        uniformBufferInvMat.TransferData(&camera.invView, sizeof(glm::mat4), 0);
 
         graphicsBase::Base().SwapImage(semaphore_imageIsAvailable);
         auto i = graphicsBase::Base().CurrentImageIndex();
         
         commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        dfRp.mRenderPass.CmdBegin(commandBuffer, dfRp.mFramebuffers[i], { {}, windowSize }, clearValues);
+        dfRp.renderPass.CmdBegin(commandBuffer, dfRp.framebuffers[i], { {}, windowSize }, clearValues);
         //G-buffer
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipeline_gBuffer);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayout_gBuffer, 0, 1, descriptorSet_transform.Address(), 0, nullptr);
         cube.Draw(commandBuffer);
-        dfRp.mRenderPass.CmdNext(commandBuffer);
+        dfRp.renderPass.CmdNext(commandBuffer);
         //Composition
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipeline_composition);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayout_composition, 0, 1, descriptorSet_inputAttach.Address(), 0, nullptr);
         vkCmdDraw(commandBuffer, 4, 1, 0, 0);
-        dfRp.mRenderPass.CmdEnd(commandBuffer);
+        dfRp.renderPass.CmdEnd(commandBuffer);
         commandBuffer.End();
         
         graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, semaphore_imageIsAvailable, semaphore_renderingIsOver, fence, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);

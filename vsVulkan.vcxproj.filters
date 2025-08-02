@@ -47,7 +47,7 @@
     <ClInclude Include="inc\vkWrapper\VKFormat.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\RenderPassWrapper.hpp">
+    <ClInclude Include="inc\render\RenderPassWrapper.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="inc\camera\Camera.hpp">
@@ -60,6 +60,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="inc\texture\TextureCube.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\lighting\IBLWrapper.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\render\PipelineLayoutRecorder.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -76,6 +82,12 @@
     <None Include="shaders\Composition.frag" />
     <None Include="shaders\GBuffer.frag" />
     <None Include="shaders\Composition.vert" />
+    <None Include="resource\texture\hdr\appart.hdr" />
+    <None Include="resource\texture\hdr\canyon.hdr" />
+    <None Include="resource\texture\hdr\circus.hdr" />
+    <None Include="resource\texture\hdr\loft.hdr" />
+    <None Include="resource\texture\hdr\path.hdr" />
+    <None Include="resource\texture\hdr\pisa.hdr" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg">
