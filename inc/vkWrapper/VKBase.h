@@ -104,6 +104,11 @@ namespace vulkan {
 		std::vector<std::function<void()>> callbacks_createDevice;
 		std::vector<std::function<void()>> callbacks_destroyDevice;
 
+		std::map<std::string, std::vector<std::function<void()>>> callbackMap_createSwapchain;
+		std::map<std::string, std::vector<std::function<void()>>> callbackMap_destroySwapchain;
+		std::map<std::string, std::vector<std::function<void()>>> callbackMap_createDevice;
+		std::map<std::string, std::vector<std::function<void()>>> callbackMap_destroyDevice;
+
 		graphicsBasePlus* pPlus = nullptr;//Pimpl
 		//Static
 		static graphicsBase singleton;
@@ -117,12 +122,14 @@ namespace vulkan {
 				WaitIdle();
 				if (swapchain) {
 					ExecuteCallbacks(callbacks_destroySwapchain);
+					ExecuteCallbacks(callbackMap_destroySwapchain);
 					for (auto& i : swapchainImageViews)
 						if (i)
 							vkDestroyImageView(device, i, nullptr);
 					vkDestroySwapchainKHR(device, swapchain, nullptr);
 				}
 				ExecuteCallbacks(callbacks_destroyDevice);
+				ExecuteCallbacks(callbackMap_destroyDevice);
 				vkDestroyDevice(device, nullptr);
 			}
 			if (surface)
@@ -323,6 +330,13 @@ namespace vulkan {
 			//for (auto& i : callbacks) i();                               //Not safe
 			//for (size_t i = 0; i < callbacks.size(); i++) callbacks[i]();//Not safe
 		}
+		static void ExecuteCallbacks(std::map<std::string, std::vector<std::function<void()>>>& callbackMap) {
+			for (auto& element : callbackMap) {
+				for (auto& func : element.second) {
+					func();
+				}
+			}
+		}
 	public:
 		//Getter
 		uint32_t ApiVersion() const {
@@ -432,6 +446,25 @@ namespace vulkan {
 		}
 		void AddCallback_DestroyDevice(std::function<void()> callback) {
 			callbacks_destroyDevice.push_back(callback);
+		}
+		void AddCallback_CreateSwapchain(std::string name, std::function<void()> callback) {
+			callbackMap_createSwapchain[name].push_back(callback);
+		}
+		void AddCallback_DestroySwapchain(std::string name, std::function<void()> callback) {
+			callbackMap_destroySwapchain[name].push_back(callback);
+		}
+		void AddCallback_CreateDevice(std::string name, std::function<void()> callback) {
+			callbackMap_createDevice[name].push_back(callback);
+		}
+		void AddCallback_DestroyDevice(std::string name, std::function<void()> callback) {
+			callbackMap_destroyDevice[name].push_back(callback);
+		}
+		void RemoveCallback(std::string name)
+		{
+			callbackMap_createSwapchain.erase(name);
+			callbackMap_destroySwapchain.erase(name);
+			callbackMap_createDevice.erase(name);
+			callbackMap_destroyDevice.erase(name);
 		}
 		//                    Create Instance
 		void AddInstanceLayer(const char* layerName) {
@@ -674,6 +707,7 @@ namespace vulkan {
 			GetPhysicalDeviceProperties();
 			outStream << std::format("Renderer: {}\n", physicalDeviceProperties.properties.deviceName);
 			ExecuteCallbacks(callbacks_createDevice);
+			ExecuteCallbacks(callbackMap_createDevice);
 			return VK_SUCCESS;
 		}
 		result_t CheckDeviceExtensions(arrayRef<const char*> extensionsToCheck, const char* layerName = nullptr) const {
@@ -837,6 +871,7 @@ namespace vulkan {
 			if (VkResult result = CreateSwapchain_Internal())
 				return result;
 			ExecuteCallbacks(callbacks_createSwapchain);
+			ExecuteCallbacks(callbackMap_createSwapchain);
 			return VK_SUCCESS;
 		}
 
@@ -858,6 +893,7 @@ namespace vulkan {
 				return result;
 			if (swapchain) {
 				ExecuteCallbacks(callbacks_destroySwapchain);
+				ExecuteCallbacks(callbackMap_destroySwapchain);
 				for (auto& i : swapchainImageViews)
 					if (i)
 						vkDestroyImageView(device, i, nullptr);
@@ -867,6 +903,7 @@ namespace vulkan {
 				swapchainCreateInfo = {};
 			}
 			ExecuteCallbacks(callbacks_destroyDevice);
+			ExecuteCallbacks(callbackMap_destroyDevice);
 			if (device)
 				vkDestroyDevice(device, nullptr),
 				device = VK_NULL_HANDLE;
@@ -893,6 +930,7 @@ namespace vulkan {
 			}
 
 			ExecuteCallbacks(callbacks_destroySwapchain);
+			ExecuteCallbacks(callbackMap_destroySwapchain);
 			for (auto& i : swapchainImageViews)
 				if (i)
 					vkDestroyImageView(device, i, nullptr);
@@ -900,6 +938,7 @@ namespace vulkan {
 			if (result = CreateSwapchain_Internal())
 				return result;
 			ExecuteCallbacks(callbacks_createSwapchain);
+			ExecuteCallbacks(callbackMap_createSwapchain);
 			return VK_SUCCESS;
 		}
 		result_t SwapImage(VkSemaphore semaphore_imageIsAvailable) {

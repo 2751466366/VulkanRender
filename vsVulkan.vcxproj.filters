@@ -47,7 +47,7 @@
     <ClInclude Include="inc\vkWrapper\VKFormat.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\render\RenderPassWrapper.hpp">
+    <ClInclude Include="inc\render\DeferredRenderPass.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="inc\camera\Camera.hpp">
@@ -66,6 +66,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="inc\render\PipelineLayoutRecorder.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\render\PipelineRenderPass.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

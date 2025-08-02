@@ -1,6 +1,6 @@
 #include "GlfwGeneral.hpp"
 #include "PipelineLayoutRecorder.hpp"
-#include "RenderPassWrapper.hpp"
+#include "DeferredRenderPass.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
 #include "TextureCube.hpp"
@@ -34,10 +34,8 @@ int main()
     cube.LoadCube();
     cube.SetWorldPos();
 
-    DeferredRenderPassWrapper dfRp;
-    dfRp.CreateRenderPass();
-    dfRp.CreatePipelineLayout(recorder);
-    dfRp.CreatePipeline();
+    DeferredRenderPass dfRp;
+    dfRp.CreatePipelineRenderPass();
 
     uniformBuffer uniformBufferMat(sizeof(glm::mat4) * 3, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     uniformBufferMat.TransferData(&cube.model, sizeof(glm::mat4), 0);
@@ -55,44 +53,32 @@ int main()
 	commandPool commandPool(graphicsBase::Base().QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 	commandPool.AllocateBuffers(commandBuffer);
 
-    /*VkDescriptorPoolSize descriptorPoolSizes[] = {
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 },
-        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
-    };
-    descriptorPool descriptorPool(2, descriptorPoolSizes);*/
-    std::vector<VkDescriptorPoolSize> descriptorPoolSizes = recorder.GetDescriptorPoolSize();
-    descriptorPool descriptorPool(recorder.GetSetsNum(), descriptorPoolSizes);
-    descriptorSet descriptorSet_transform;
-    descriptorSet descriptorSet_inputAttach;
-    descriptorPool.AllocateSets(descriptorSet_transform, dfRp.descriptorSetLayout_gBuffer);
-    descriptorPool.AllocateSets(descriptorSet_inputAttach, dfRp.descriptorSetLayout_composition);
     VkDescriptorBufferInfo bufferInfoMat = {
         .buffer = uniformBufferMat,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    descriptorSet_transform.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
+    dfRp.descriptorSets[0].Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
     auto UpdateDescriptorSet_InputAttachments = [&] {
         VkDescriptorImageInfo imageInfos[] = {
         	{ VK_NULL_HANDLE, dfRp.colorAttachments[0].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
         	{ VK_NULL_HANDLE, dfRp.colorAttachments[1].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
             { VK_NULL_HANDLE, dfRp.colorAttachments[2].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
-        descriptorSet_inputAttach.Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
+        dfRp.descriptorSets[1].Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
         VkDescriptorImageInfo textureInfo[] = {
             { skyBox.sample, skyBox.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
-        descriptorSet_inputAttach.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
+        dfRp.descriptorSets[1].Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
     };
-    graphicsBase::Base().AddCallback_CreateSwapchain(UpdateDescriptorSet_InputAttachments);
+    graphicsBase::Base().AddCallback_CreateSwapchain(dfRp.name, UpdateDescriptorSet_InputAttachments);
     UpdateDescriptorSet_InputAttachments();
     VkDescriptorBufferInfo bufferInfoInvMat = {
         .buffer = uniformBufferInvMat,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    descriptorSet_inputAttach.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
+    dfRp.descriptorSets[1].Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
 
     VkClearValue clearValues[] = {
         {.color = {} },
@@ -118,13 +104,13 @@ int main()
         commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         dfRp.renderPass.CmdBegin(commandBuffer, dfRp.framebuffers[i], { {}, windowSize }, clearValues);
         //G-buffer
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipeline_gBuffer);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayout_gBuffer, 0, 1, descriptorSet_transform.Address(), 0, nullptr);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[0]);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 0, 1, dfRp.descriptorSets[0].Address(), 0, nullptr);
         cube.Draw(commandBuffer);
         dfRp.renderPass.CmdNext(commandBuffer);
         //Composition
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipeline_composition);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayout_composition, 0, 1, descriptorSet_inputAttach.Address(), 0, nullptr);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[1]);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[1], 0, 1, dfRp.descriptorSets[1].Address(), 0, nullptr);
         vkCmdDraw(commandBuffer, 4, 1, 0, 0);
         dfRp.renderPass.CmdEnd(commandBuffer);
         commandBuffer.End();
@@ -144,12 +130,12 @@ int main()
 void LoadSkyBox(TexuteCube& skyBox)
 {
     std::vector<std::string> paths;
-    paths.push_back("resource/texture/skybox/back.jpg");
-    paths.push_back("resource/texture/skybox/front.jpg");
-    paths.push_back("resource/texture/skybox/left.jpg");
     paths.push_back("resource/texture/skybox/right.jpg");
+    paths.push_back("resource/texture/skybox/left.jpg");
     paths.push_back("resource/texture/skybox/top.jpg");
     paths.push_back("resource/texture/skybox/bottom.jpg");
+    paths.push_back("resource/texture/skybox/back.jpg");
+    paths.push_back("resource/texture/skybox/front.jpg");
     skyBox.CreateWithPictures(paths);
 }
 

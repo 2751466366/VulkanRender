@@ -144,7 +144,8 @@
     <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
     <ClInclude Include="inc\render\PipelineLayoutRecorder.hpp" />
-    <ClInclude Include="inc\render\RenderPassWrapper.hpp" />
+    <ClInclude Include="inc\render\PipelineRenderPass.hpp" />
+    <ClInclude Include="inc\render\DeferredRenderPass.hpp" />
     <ClInclude Include="inc\texture\TextureCube.hpp" />
     <ClInclude Include="inc\vkWrapper\EasyVKStart.h" />
     <ClInclude Include="inc\vkWrapper\EasyVulkan.hpp" />
