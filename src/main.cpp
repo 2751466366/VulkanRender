@@ -1,5 +1,4 @@
 #include "GlfwGeneral.hpp"
-#include "PipelineLayoutRecorder.hpp"
 #include "DeferredRenderPass.hpp"
 #include "Camera.hpp"
 #include "Mesh.hpp"
@@ -23,8 +22,6 @@ int main()
 		return -1;
     glfwSetCursorPosCallback(pWindow, mouse_callback);
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    PipelineLayoutRecorder recorder;
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);

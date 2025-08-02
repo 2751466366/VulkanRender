@@ -1,7 +1,6 @@
 #pragma once
 #include "VkBase+.h"
 #include "common.h"
-#include "PipelineLayoutRecorder.hpp"
 #include "PipelineRenderPass.hpp"
 
 using namespace vulkan;
@@ -214,13 +213,13 @@ public:
 
 
 		// record layout data for create descriptorPool
-		recorder.AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		recorder.AddSetsNum();
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		AddSetsNum();
 
-		recorder.AddDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3);
-		recorder.AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		recorder.AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		recorder.AddSetsNum();
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3);
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		AddSetsNum();
 	}
 	void CreatePipeline()
 	{
@@ -282,15 +281,5 @@ public:
 		graphicsBase::Base().AddCallback_CreateSwapchain(name, Create);
 		graphicsBase::Base().AddCallback_DestroySwapchain(name, Destroy);
 		Create();
-	}
-	void CreateDescriptor()
-	{
-		std::vector<VkDescriptorPoolSize> descriptorPoolSizes =
-			recorder.GetDescriptorPoolSize();
-		descriptorPool.Create(recorder.GetSetsNum(), descriptorPoolSizes);
-		descriptorSets.resize(descriptorSetLayouts.size());
-		for (int i = 0; i < descriptorSets.size(); i++) {
-			descriptorPool.AllocateSets(descriptorSets[i], descriptorSetLayouts[i]);
-		}
 	}
 };

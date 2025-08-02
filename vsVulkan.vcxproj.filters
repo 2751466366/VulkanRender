@@ -65,9 +65,6 @@
     <ClInclude Include="inc\lighting\IBLWrapper.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\render\PipelineLayoutRecorder.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="inc\render\PipelineRenderPass.hpp">
       <Filter>头文件</Filter>
     </ClInclude>

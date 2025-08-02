@@ -1,7 +1,6 @@
 #pragma once
 #include "VkBase+.h"
 #include "common.h"
-#include "PipelineLayoutRecorder.hpp"
 
 using namespace vulkan;
 class PipelineRenderPass {
@@ -19,9 +18,11 @@ public:
 	std::vector<pipelineLayout> pipelineLayouts;
 	std::vector<pipeline> pipelines;
 
-	PipelineLayoutRecorder recorder;
 	descriptorPool descriptorPool;
 	std::vector<descriptorSet> descriptorSets;
+	std::map<VkDescriptorType, uint32_t> descriptorTypeMap;
+	uint32_t setsNum = 0;
+
 	PipelineRenderPass()
 	{
 		name = "PR" + std::to_string(count++);
@@ -29,5 +30,29 @@ public:
 	~PipelineRenderPass() = default;
 
 	virtual bool CreatePipelineRenderPass() = 0;
+
+	void AddDescriptorType(VkDescriptorType type, uint32_t num = 1)
+	{
+		descriptorTypeMap[type] += num;
+	}
+
+	void AddSetsNum(uint32_t num = 1)
+	{
+		setsNum += num;
+	}
+
+	void CreateDescriptor()
+	{
+		std::vector<VkDescriptorPoolSize> descriptorPoolSizes;
+		for (auto [key, val] : descriptorTypeMap) {
+			descriptorPoolSizes.push_back({ key, val });
+		}
+
+		descriptorPool.Create(setsNum, descriptorPoolSizes);
+		descriptorSets.resize(descriptorSetLayouts.size());
+		for (int i = 0; i < descriptorSets.size(); i++) {
+			descriptorPool.AllocateSets(descriptorSets[i], descriptorSetLayouts[i]);
+		}
+	}
 };
 uint32_t PipelineRenderPass::count = 0;

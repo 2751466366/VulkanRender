@@ -143,7 +143,6 @@
     <ClInclude Include="inc\common.h" />
     <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
-    <ClInclude Include="inc\render\PipelineLayoutRecorder.hpp" />
     <ClInclude Include="inc\render\PipelineRenderPass.hpp" />
     <ClInclude Include="inc\render\DeferredRenderPass.hpp" />
     <ClInclude Include="inc\texture\TextureCube.hpp" />
