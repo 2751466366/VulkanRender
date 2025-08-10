@@ -3,6 +3,7 @@
 #include "Camera.hpp"
 #include "Mesh.hpp"
 #include "TextureCube.hpp"
+#include "IBLWrapper.hpp"
 
 float lastFrame = 0.0f;
 bool firstMouse = true;
@@ -22,6 +23,9 @@ int main()
 		return -1;
     glfwSetCursorPosCallback(pWindow, mouse_callback);
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    IBLWrapper iblWrapper;
+    iblWrapper.IBLSetup("resource/texture/hdr/loft.hdr");
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
@@ -64,7 +68,7 @@ int main()
         };
         dfRp.descriptorSets[1].Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
         VkDescriptorImageInfo textureInfo[] = {
-            { skyBox.sample, skyBox.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
+            { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
         dfRp.descriptorSets[1].Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
     };

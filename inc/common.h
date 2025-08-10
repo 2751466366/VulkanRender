@@ -27,3 +27,5 @@ struct Vertex {
     glm::vec3 normal;
     glm::vec2 texCoords;
 };
+
+#define GET_ARRAY_NUM(arr) (sizeof(arr) / sizeof(arr[0]))

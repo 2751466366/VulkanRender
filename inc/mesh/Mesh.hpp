@@ -70,7 +70,7 @@ public:
         model = glm::translate(model, pos);
     }
 
-    void Draw(commandBuffer& commandBuffer)
+    void Draw(const commandBuffer& commandBuffer)
     {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffer.Address(), &offset);

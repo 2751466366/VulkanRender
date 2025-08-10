@@ -6,11 +6,6 @@
 using namespace vulkan;
 class DeferredRenderPass : public PipelineRenderPass {
 public:
-	DeferredRenderPass() = default;
-	~DeferredRenderPass()
-	{
-		graphicsBase::Base().RemoveCallback(name);
-	}
 
 	virtual bool CreatePipelineRenderPass()
 	{

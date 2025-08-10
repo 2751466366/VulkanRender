@@ -4,7 +4,17 @@
 
 using namespace vulkan;
 class TexuteCube {
-private:
+public:
+	bool isCreated = false;
+	VkExtent2D texSize;
+	std::vector<imageView> faceViews;
+	imageView imageView;
+	imageMemory imageMemory;
+	sampler sample;
+
+	TexuteCube() = default;
+	~TexuteCube() = default;
+
 	void TransitionImage(const commandBuffer& cmd,
 		VkImageLayout oldLayout, VkImageLayout newLayout,
 		const VkImageSubresourceRange& range,
@@ -26,15 +36,126 @@ private:
 		vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0,
 			0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 	}
-public:
-	imageView imageView;
-	imageMemory imageMemory;
-	sampler sample;
 
-	TexuteCube() = default;
-	~TexuteCube() = default;
+	void CreateImageAndFaceViews(VkFormat format, VkExtent2D windowSize) {
+		// create imageMemory first
+		texSize = windowSize;
+		uint32_t mipLevels =
+			uint32_t(std::floor(std::log2(std::max(windowSize.height, windowSize.width)))) + 1;
+		VkImageCreateInfo imgInfo{};
+		imgInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imgInfo.imageType = VK_IMAGE_TYPE_2D;
+		imgInfo.extent.width = windowSize.width;
+		imgInfo.extent.height = windowSize.height;
+		imgInfo.extent.depth = 1;
+		imgInfo.mipLevels = mipLevels;
+		imgInfo.arrayLayers = 6;
+		imgInfo.format = format;
+		imgInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imgInfo.usage =
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+			VK_IMAGE_USAGE_SAMPLED_BIT;
+		imgInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imgInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imgInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		imageMemory.Create(imgInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		faceViews.resize(6);
+		for (uint32_t face = 0; face < 6; ++face) {
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = imageMemory.Image();
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;  // 每个面是 2D 视图
+			viewInfo.format = format;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = face;
+			viewInfo.subresourceRange.layerCount = 1;
+			faceViews[face].Create(viewInfo);
+		}
+
+		//cteate ImageView and Sampler
+		VkImageViewCreateInfo view{};
+		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+		view.format = format;
+		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		view.subresourceRange.baseMipLevel = 0;
+		view.subresourceRange.levelCount = mipLevels;
+		view.subresourceRange.baseArrayLayer = 0;
+		view.subresourceRange.layerCount = 6;
+		view.image = imageMemory.Image();
+		imageView.Create(view);
+
+		VkSamplerCreateInfo samp{};
+		samp.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samp.magFilter = VK_FILTER_LINEAR;
+		samp.minFilter = VK_FILTER_LINEAR;
+		samp.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samp.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samp.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samp.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samp.minLod = 0.0f;
+		samp.maxLod = static_cast<float>(mipLevels);
+		sample.Create(samp);
+	}
+
+	void GenMipMap(const commandBuffer& commandBuffer) {
+		uint32_t mipLevels =
+			uint32_t(std::floor(std::log2(std::max(texSize.height, texSize.width)))) + 1;
+		commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		TransitionImage(commandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 6 },
+			0, VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+		for (uint32_t level = 1; level < mipLevels; ++level) {
+			TransitionImage(commandBuffer,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				{ VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1, 0, 6 },
+				VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+			VkImageBlit blit{};
+			blit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 0, 6 };
+			blit.srcOffsets[1] = { int32_t(texSize.width >> (level - 1)),
+									int32_t(texSize.height >> (level - 1)), 1 };
+			blit.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, level, 0, 6 };
+			blit.dstOffsets[1] = { int32_t(texSize.width >> level),
+									int32_t(texSize.height >> level), 1 };
+
+			vkCmdBlitImage(commandBuffer,
+				imageMemory.Image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				imageMemory.Image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1, &blit,
+				VK_FILTER_LINEAR);
+
+			TransitionImage(commandBuffer,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				{ VK_IMAGE_ASPECT_COLOR_BIT, level - 1, 1, 0, 6 },
+				VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+		}
+		TransitionImage(commandBuffer,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, mipLevels - 1, 1, 0, 6 },
+			VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+		// submit command
+		commandBuffer.End();
+		graphicsBase::Plus().ExecuteCommandBuffer_Graphics(commandBuffer);
+	}
+
 	bool CreateWithPictures(const std::vector<std::string>& paths)
 	{
+		if (isCreated) {
+			std::cout << "already created\n";
+			return true;
+		}
+		isCreated = true;
 		if (paths.size() != 6) {
 			std::cout << "wrong size of cubeMap" << std::endl;
 			return false;
@@ -48,8 +169,9 @@ public:
 		comp = 4;
 		std::cout << "load cubeTex size = [" << w << ", " << h << "] comp= " << comp << std::endl;
 		VkFormat format = (comp == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB);
-		// create image
-		uint32_t mipLevels = uint32_t(std::floor(std::log2(std::max(w, h)))) + 1;
+		uint32_t mipLevels =
+			uint32_t(std::floor(std::log2(std::max(h, w)))) + 1;
+		// create image and faceViews
 		VkImageCreateInfo imgInfo{};
 		imgInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imgInfo.imageType = VK_IMAGE_TYPE_2D;

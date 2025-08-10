@@ -27,9 +27,16 @@ public:
 	{
 		name = "PR" + std::to_string(count++);
 	}
-	~PipelineRenderPass() = default;
+	~PipelineRenderPass()
+	{
+		graphicsBase::Base().RemoveCallback(name);
+	}
 
-	virtual bool CreatePipelineRenderPass() = 0;
+	virtual bool CreatePipelineRenderPass()
+	{
+		std::cout << "no implememt\n";
+		return false;
+	}
 
 	void AddDescriptorType(VkDescriptorType type, uint32_t num = 1)
 	{

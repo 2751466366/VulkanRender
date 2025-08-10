@@ -143,6 +143,7 @@
     <ClInclude Include="inc\common.h" />
     <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
+    <ClInclude Include="inc\render\CubeRenderPass.hpp" />
     <ClInclude Include="inc\render\PipelineRenderPass.hpp" />
     <ClInclude Include="inc\render\DeferredRenderPass.hpp" />
     <ClInclude Include="inc\texture\TextureCube.hpp" />
@@ -175,6 +176,8 @@
     <None Include="shaders\Composition.vert" />
     <None Include="shaders\GBuffer.frag" />
     <None Include="shaders\Gbuffer.vert" />
+    <None Include="shaders\texture\LatlongToCube.frag" />
+    <None Include="shaders\texture\LatlongToCube.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg" />

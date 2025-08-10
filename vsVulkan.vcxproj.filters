@@ -68,6 +68,9 @@
     <ClInclude Include="inc\render\PipelineRenderPass.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\render\CubeRenderPass.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\assimp.lib" />
@@ -88,6 +91,8 @@
     <None Include="resource\texture\hdr\loft.hdr" />
     <None Include="resource\texture\hdr\path.hdr" />
     <None Include="resource\texture\hdr\pisa.hdr" />
+    <None Include="shaders\texture\LatlongToCube.vert" />
+    <None Include="shaders\texture\LatlongToCube.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg">
