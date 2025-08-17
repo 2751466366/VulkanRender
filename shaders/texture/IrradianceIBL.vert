@@ -4,7 +4,7 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 texCoords;
 
-layout(location = 0) out vec3 worldPos;
+layout(location = 0) out vec3 cubeCoords;
 
 layout(set = 0, binding = 0) uniform transformData {
     mat4 view;
@@ -13,7 +13,7 @@ layout(set = 0, binding = 0) uniform transformData {
 
 void main()
 {
-    worldPos = position;
+    cubeCoords = position;  
 
-    gl_Position =  transform.proj * transform.view * vec4(worldPos, 1.0);
+    gl_Position =  transform.proj * transform.view * vec4(position, 1.0);
 }

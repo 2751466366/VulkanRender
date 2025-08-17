@@ -176,6 +176,8 @@
     <None Include="shaders\Composition.vert" />
     <None Include="shaders\GBuffer.frag" />
     <None Include="shaders\Gbuffer.vert" />
+    <None Include="shaders\texture\IrradianceIBL.frag" />
+    <None Include="shaders\texture\IrradianceIBL.vert" />
     <None Include="shaders\texture\LatlongToCube.frag" />
     <None Include="shaders\texture\LatlongToCube.vert" />
   </ItemGroup>

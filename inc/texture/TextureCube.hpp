@@ -6,8 +6,9 @@ using namespace vulkan;
 class TexuteCube {
 public:
 	bool isCreated = false;
-	VkExtent2D texSize;
-	std::vector<imageView> faceViews;
+	VkExtent2D texSize = {};
+	uint32_t mipLevels = 0;
+	VkFormat texFormat = VK_FORMAT_UNDEFINED;
 	imageView imageView;
 	imageMemory imageMemory;
 	sampler sample;
@@ -37,11 +38,13 @@ public:
 			0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 	}
 
-	void CreateImageAndFaceViews(VkFormat format, VkExtent2D windowSize) {
+	void CreateImageView(VkFormat format, VkExtent2D windowSize, int levels = 0) {
 		// create imageMemory first
 		texSize = windowSize;
-		uint32_t mipLevels =
-			uint32_t(std::floor(std::log2(std::max(windowSize.height, windowSize.width)))) + 1;
+		mipLevels = levels <= 0 ?
+			uint32_t(std::floor(std::log2(std::max(windowSize.height, windowSize.width)))) + 1 :
+			levels;
+		texFormat = format;
 		VkImageCreateInfo imgInfo{};
 		imgInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imgInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -50,7 +53,7 @@ public:
 		imgInfo.extent.depth = 1;
 		imgInfo.mipLevels = mipLevels;
 		imgInfo.arrayLayers = 6;
-		imgInfo.format = format;
+		imgInfo.format = texFormat;
 		imgInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imgInfo.usage =
@@ -62,21 +65,6 @@ public:
 		imgInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imgInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		imageMemory.Create(imgInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		faceViews.resize(6);
-		for (uint32_t face = 0; face < 6; ++face) {
-			VkImageViewCreateInfo viewInfo{};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = imageMemory.Image();
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;  // 每个面是 2D 视图
-			viewInfo.format = format;
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			viewInfo.subresourceRange.baseMipLevel = 0;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.baseArrayLayer = face;
-			viewInfo.subresourceRange.layerCount = 1;
-			faceViews[face].Create(viewInfo);
-		}
 
 		//cteate ImageView and Sampler
 		VkImageViewCreateInfo view{};
@@ -105,8 +93,6 @@ public:
 	}
 
 	void GenMipMap(const commandBuffer& commandBuffer) {
-		uint32_t mipLevels =
-			uint32_t(std::floor(std::log2(std::max(texSize.height, texSize.width)))) + 1;
 		commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		TransitionImage(commandBuffer, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 6 },
@@ -169,7 +155,7 @@ public:
 		comp = 4;
 		std::cout << "load cubeTex size = [" << w << ", " << h << "] comp= " << comp << std::endl;
 		VkFormat format = (comp == 4 ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8_SRGB);
-		uint32_t mipLevels =
+		mipLevels =
 			uint32_t(std::floor(std::log2(std::max(h, w)))) + 1;
 		// create image and faceViews
 		VkImageCreateInfo imgInfo{};

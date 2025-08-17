@@ -26,6 +26,4 @@ void main()
     worldNormal = normalMatrix * normal;
 
     gl_Position = transform.proj * viewFragPos;
-
-
 }

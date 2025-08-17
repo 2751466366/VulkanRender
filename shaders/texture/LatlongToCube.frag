@@ -15,7 +15,6 @@ vec2 getSphericalCoord(vec3 normalCoord)
     return vec2(theta / (2.0f * PI), phi / PI);
 }
 
-
 void main()
 {		
     vec2 uv = getSphericalCoord(normalize(worldPos));

@@ -30,13 +30,15 @@ int main()
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
 
-    camera.SetProj(vulkan::defaultWindowSize.width, vulkan::defaultWindowSize.height);
     Mesh cube;
     cube.LoadCube();
     cube.SetWorldPos();
 
     DeferredRenderPass dfRp;
+    dfRp.windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
     dfRp.CreatePipelineRenderPass();
+
+    camera.SetProj(dfRp.windowSize.width, dfRp.windowSize.height);
 
     uniformBuffer uniformBufferMat(sizeof(glm::mat4) * 3, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     uniformBufferMat.TransferData(&cube.model, sizeof(glm::mat4), 0);
@@ -68,7 +70,7 @@ int main()
         };
         dfRp.descriptorSets[1].Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
         VkDescriptorImageInfo textureInfo[] = {
-            { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
+            { iblWrapper.irraTex.sample, iblWrapper.irraTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
         dfRp.descriptorSets[1].Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
     };
@@ -89,7 +91,6 @@ int main()
         {.depthStencil = { 1.f, 0 } }
     };
 
-    VkExtent2D windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
     while (!glfwWindowShouldClose(pWindow)) {
         while (glfwGetWindowAttrib(pWindow, GLFW_ICONIFIED))
             glfwWaitEvents();
@@ -103,7 +104,8 @@ int main()
         auto i = graphicsBase::Base().CurrentImageIndex();
         
         commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        dfRp.renderPass.CmdBegin(commandBuffer, dfRp.framebuffers[i], { {}, windowSize }, clearValues);
+
+        dfRp.renderPass.CmdBegin(commandBuffer, dfRp.framebuffers[i], { {}, dfRp.windowSize }, clearValues);
         //G-buffer
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[0]);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 0, 1, dfRp.descriptorSets[0].Address(), 0, nullptr);
@@ -112,7 +114,7 @@ int main()
         //Composition
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[1]);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[1], 0, 1, dfRp.descriptorSets[1].Address(), 0, nullptr);
-        vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+        vkCmdDraw(commandBuffer, 6, 1, 0, 0);
         dfRp.renderPass.CmdEnd(commandBuffer);
         commandBuffer.End();
         

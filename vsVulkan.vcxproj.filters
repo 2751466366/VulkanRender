@@ -93,6 +93,8 @@
     <None Include="resource\texture\hdr\pisa.hdr" />
     <None Include="shaders\texture\LatlongToCube.vert" />
     <None Include="shaders\texture\LatlongToCube.frag" />
+    <None Include="shaders\texture\IrradianceIBL.vert" />
+    <None Include="shaders\texture\IrradianceIBL.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg">

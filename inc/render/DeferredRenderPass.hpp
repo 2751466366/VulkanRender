@@ -5,8 +5,13 @@
 
 using namespace vulkan;
 class DeferredRenderPass : public PipelineRenderPass {
+private:
+	shaderModule vert_gBuffer;
+	shaderModule frag_gBuffer;
+	shaderModule vert_composition;
+	shaderModule frag_composition;
 public:
-
+	VkExtent2D windowSize = { 0, 0 };
 	virtual bool CreatePipelineRenderPass()
 	{
 		if (isCreated)
@@ -219,20 +224,19 @@ public:
 	void CreatePipeline()
 	{
 		pipelines.resize(2);
-		static shaderModule vert_gBuffer("shaders/GBuffer.vert.spv");
-		static shaderModule frag_gBuffer("shaders/GBuffer.frag.spv");
-		static VkPipelineShaderStageCreateInfo shaderStageCreateInfos_gBuffer[2] = {
+		vert_gBuffer.Create("shaders/GBuffer.vert.spv");
+		frag_gBuffer.Create("shaders/GBuffer.frag.spv");
+		VkPipelineShaderStageCreateInfo shaderStageCreateInfos_gBuffer[2] = {
 			vert_gBuffer.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
 			frag_gBuffer.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
-		static shaderModule vert_composition("shaders/Composition.vert.spv");
-		static shaderModule frag_composition("shaders/Composition.frag.spv");
-		static VkPipelineShaderStageCreateInfo shaderStageCreateInfos_composition[2] = {
+		vert_composition.Create("shaders/Composition.vert.spv");
+		frag_composition.Create("shaders/Composition.frag.spv");
+		VkPipelineShaderStageCreateInfo shaderStageCreateInfos_composition[2] = {
 			vert_composition.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
 			frag_composition.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 		auto Create = [&] {
-			VkExtent2D windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
 			//G-buffer
 			graphicsPipelineCreateInfoPack pipelineCiPack;
 			pipelineCiPack.createInfo.layout = pipelineLayouts[0];
@@ -265,7 +269,7 @@ public:
 			pipelineCiPack.createInfo.pStages = shaderStageCreateInfos_composition;
 			pipelineCiPack.vertexInputStateCi.vertexBindingDescriptionCount = 0;
 			pipelineCiPack.vertexInputStateCi.vertexAttributeDescriptionCount = 0;
-			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			pipelineCiPack.colorBlendStateCi.attachmentCount = 1;
 			pipelines[1].Create(pipelineCiPack);
 		};

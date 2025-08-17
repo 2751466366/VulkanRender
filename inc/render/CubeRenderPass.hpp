@@ -1,23 +1,31 @@
 #pragma once
 #include "PipelineRenderPass.hpp"
+#include "TextureCube.hpp"
 
 class CubeRenderPass : public PipelineRenderPass {
+private:
+	shaderModule vertShader;
+	shaderModule fragShader;
 public:
 	VkExtent2D windowSize = { 512, 512 };
-	bool CreatePipelineRenderPassWithFaceViews(const std::vector<imageView>& faceViews)
+	std::vector<vulkan::imageView> faceViews;
+	std::string vertPath;
+	std::string fragPath;
+	std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetInfos;
+	virtual bool CreatePipelineRenderPass()
 	{
 		if (isCreated)
 			return false;
 		isCreated = true;
 
-		CreateRenderPass(faceViews);
+		CreateRenderPass();
 		CreatePipelineLayout();
 		CreatePipeline();
 		CreateDescriptor();
 
 		return true;
 	}
-	void CreateRenderPass(const std::vector<imageView>& faceViews)
+	void CreateRenderPass()
 	{
 		VkAttachmentDescription attachmentDescriptions[] = {
 			{
@@ -61,54 +69,56 @@ public:
 			.pDependencies = subpassDependencies
 		};
 		renderPass.Create(renderPassCreateInfo);
-		framebuffers.resize(6);
-		for (int i = 0; i < 6; i++) {
-			VkImageView attachments[] = {
-				faceViews[i]
-			};
-			VkFramebufferCreateInfo framebufferCreateInfo = {
-				.renderPass = renderPass,
-				.attachmentCount = GET_ARRAY_NUM(attachments),
-				.pAttachments = attachments,
-				.width = windowSize.width,
-				.height = windowSize.height,
-				.layers = 1
-			};
-			framebuffers[i].Create(framebufferCreateInfo);
+		framebuffers.resize(faceViews.size());
+		for (int mip = 0; mip < faceViews.size() / 6; mip++) {
+			for (int i = 0; i < 6; i++) {
+				VkImageView attachments[] = {
+					faceViews[mip * 6 + i]
+				};
+				VkFramebufferCreateInfo framebufferCreateInfo = {
+					.renderPass = renderPass,
+					.attachmentCount = GET_ARRAY_NUM(attachments),
+					.pAttachments = attachments,
+					.width = windowSize.width >> mip,
+					.height = windowSize.height >> mip,
+					.layers = 1
+				};
+				framebuffers[i].Create(framebufferCreateInfo);
+			}
 		}
 	}
 	void CreatePipelineLayout()
 	{
-		descriptorSetLayouts.resize(1);
-		pipelineLayouts.resize(1);
-		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding[] = {
-			{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT },
-			{ 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
-		};
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-			.bindingCount = GET_ARRAY_NUM(descriptorSetLayoutBinding),
-			.pBindings = descriptorSetLayoutBinding
-		};
-		descriptorSetLayouts[0].Create(descriptorSetLayoutCreateInfo);
+		int setNum = descriptorSetInfos.size();
+		descriptorSetLayouts.resize(setNum);
+		pipelineLayouts.resize(setNum);
+		for (int i = 0; i < setNum; i++) {
+			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+				.bindingCount = (uint32_t)descriptorSetInfos[i].size(),
+				.pBindings = descriptorSetInfos[i].data()
+			};
+			descriptorSetLayouts[i].Create(descriptorSetLayoutCreateInfo);
 
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-			.setLayoutCount = 1,
-			.pSetLayouts = descriptorSetLayouts[0].Address()
-		};
-		pipelineLayouts[0].Create(pipelineLayoutCreateInfo);
+			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
+				.setLayoutCount = 1,
+				.pSetLayouts = descriptorSetLayouts[i].Address()
+			};
+			pipelineLayouts[i].Create(pipelineLayoutCreateInfo);
 
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		AddSetsNum();
+			for (int n = 0; n < descriptorSetInfos[i].size(); n++) {
+				AddDescriptorType(descriptorSetInfos[i][n].descriptorType);
+			}
+			AddSetsNum();
+		}
 	}
 	void CreatePipeline()
 	{
 		pipelines.resize(1);
-		static shaderModule vert_gBuffer("shaders/texture/LatlongToCube.vert.spv");
-		static shaderModule frag_gBuffer("shaders/texture/LatlongToCube.frag.spv");
-		static VkPipelineShaderStageCreateInfo shaderStageCreateInfos[2] = {
-			vert_gBuffer.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
-			frag_gBuffer.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
+		vertShader.Create(vertPath.c_str());
+		fragShader.Create(fragPath.c_str());
+		VkPipelineShaderStageCreateInfo shaderStageCreateInfos[2] = {
+			vertShader.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
+			fragShader.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		graphicsPipelineCreateInfoPack pipelineCiPack;
@@ -134,5 +144,31 @@ public:
 		pipelineCiPack.createInfo.stageCount = 2;
 		pipelineCiPack.createInfo.pStages = shaderStageCreateInfos;
 		pipelines[0].Create(pipelineCiPack);
+	}
+
+	void CreateFaceViews(TexuteCube& texCube, bool level = false)
+	{
+		this->windowSize = texCube.texSize;
+		int levelNum = level ? texCube.mipLevels : 1;
+		faceViews.resize(levelNum * texCube.mipLevels);
+		for (int mip = 0; mip < levelNum; mip++) {
+			for (int lay = 0; lay < 6; lay++) {
+				VkImageViewCreateInfo viewInfo{};
+				viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+				viewInfo.image = texCube.imageMemory.Image();
+				viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				viewInfo.format = texCube.texFormat;
+				viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				viewInfo.subresourceRange.baseMipLevel = mip;
+				viewInfo.subresourceRange.levelCount = 1;
+				viewInfo.subresourceRange.baseArrayLayer = lay;
+				viewInfo.subresourceRange.layerCount = 1;
+				faceViews[mip * 6 + lay].Create(viewInfo);
+			}
+		}
+	}
+	void SetDescriptorSetInfos(std::vector<std::vector<VkDescriptorSetLayoutBinding>>& descriptorSetInfos)
+	{
+		this->descriptorSetInfos = descriptorSetInfos;
 	}
 };
