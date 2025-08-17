@@ -33,10 +33,7 @@ public:
         envMapViews[3] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)); // -Y
         envMapViews[4] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));  // +Z
         envMapViews[5] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)); // -Z
-       /* envMapProjection =
-            FlipVertical(glm::infinitePerspectiveRH_ZO(glm::radians(90.f), 1.0f, 0.1f));*/
         envMapProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        //envMapProjection[1][1] *= -1;
         cube.LoadCube();
 	    hdrTexture.Create(
 			path.c_str(),

@@ -14,6 +14,5 @@ layout(set = 0, binding = 0) uniform transformData {
 void main()
 {
     worldPos = position;
-
-    gl_Position =  transform.proj * transform.view * vec4(worldPos, 1.0);
+    gl_Position =  transform.proj * transform.view * vec4(position, 1.0);
 }

@@ -70,7 +70,7 @@ int main()
         };
         dfRp.descriptorSets[1].Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
         VkDescriptorImageInfo textureInfo[] = {
-            { iblWrapper.irraTex.sample, iblWrapper.irraTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
+            { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
         dfRp.descriptorSets[1].Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
     };
