@@ -16,7 +16,7 @@ public:
     void SetProj(int width, int height)
     {
         projection = glm::perspective(fov, float(width) / float(height), znear, zfar);
-        projection[1][1] *= -1; // Invert Y axis
+        //projection[1][1] *= -1; // Invert Y axis
 
         invProj = glm::inverse(projection);
 

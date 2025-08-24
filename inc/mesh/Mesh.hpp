@@ -66,6 +66,23 @@ public:
         indexBuffer.TransferData(indices.data(), indices.size() * sizeof(uint32_t));
     }
 
+    void LoadQuad()
+    {
+        vertices = {
+            { {-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f} },
+            { {-1.0f,-1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f} },
+            { { 1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f} },
+            { { 1.0f,-1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f} },
+        };
+        indices = {
+            0, 1, 2, 3
+        };
+        vertexBuffer.Create(vertices.size() * sizeof(Vertex));
+        vertexBuffer.TransferData(vertices.data(), vertices.size() * sizeof(Vertex));
+        indexBuffer.Create(indices.size() * sizeof(uint32_t));
+        indexBuffer.TransferData(indices.data(), indices.size() * sizeof(uint32_t));
+    }
+
     void SetWorldPos(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f)) {
         model = glm::translate(model, pos);
     }
@@ -75,6 +92,6 @@ public:
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffer.Address(), &offset);
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, 36, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, indices.size(), 1, 0, 0, 0);
     }
 };

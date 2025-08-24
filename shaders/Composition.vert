@@ -1,12 +1,12 @@
 #version 450 core
 
 vec2 positions[6] = {
-	{-1, 1},
-	{ 1, 1},
-	{ 1,-1},
-	{ 1,-1},
 	{-1,-1},
-	{-1, 1}
+	{ 1,-1},
+	{ 1, 1},
+	{ 1, 1},
+	{-1, 1},
+	{-1,-1}
 };
 
 layout(location = 0) out vec3 i_Position;

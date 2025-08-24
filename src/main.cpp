@@ -25,7 +25,7 @@ int main()
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     IBLWrapper iblWrapper;
-    iblWrapper.IBLSetup("resource/texture/hdr/loft.hdr");
+    iblWrapper.IBLSetup("resource/texture/hdr/appart.hdr");
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);

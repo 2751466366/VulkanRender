@@ -70,7 +70,7 @@ public:
 		};
 		renderPass.Create(renderPassCreateInfo);
 		framebuffers.resize(faceViews.size());
-		for (int mip = 0; mip < faceViews.size() / 6; mip++) {
+		for (int mip = 0; mip < (faceViews.size() / 6); mip++) {
 			for (int i = 0; i < 6; i++) {
 				VkImageView attachments[] = {
 					faceViews[mip * 6 + i]
@@ -83,7 +83,7 @@ public:
 					.height = windowSize.height >> mip,
 					.layers = 1
 				};
-				framebuffers[i].Create(framebufferCreateInfo);
+				framebuffers[mip * 6 + i].Create(framebufferCreateInfo);
 			}
 		}
 	}
@@ -113,7 +113,8 @@ public:
 	}
 	void CreatePipeline()
 	{
-		pipelines.resize(1);
+		int pipeNum = faceViews.size() / 6;
+		pipelines.resize(pipeNum);
 		vertShader.Create(vertPath.c_str());
 		fragShader.Create(fragPath.c_str());
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfos[2] = {
@@ -121,36 +122,40 @@ public:
 			fragShader.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
-		graphicsPipelineCreateInfoPack pipelineCiPack;
-		pipelineCiPack.createInfo.layout = pipelineLayouts[0];
-		pipelineCiPack.createInfo.renderPass = renderPass;
-		pipelineCiPack.createInfo.subpass = 0;
-		pipelineCiPack.vertexInputBindings.emplace_back(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX);
-		pipelineCiPack.vertexInputAttributes.emplace_back(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position));
-		pipelineCiPack.vertexInputAttributes.emplace_back(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal));
-		pipelineCiPack.vertexInputAttributes.emplace_back(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoords));
-		pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		pipelineCiPack.viewports.emplace_back(0.f, 0.f, float(windowSize.width), float(windowSize.height), 0.f, 1.f);
-		pipelineCiPack.scissors.emplace_back(VkOffset2D{}, windowSize);
-		/*pipelineCiPack.rasterizationStateCi.cullMode = VK_CULL_MODE_BACK_BIT;
-		pipelineCiPack.rasterizationStateCi.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;*/
-		pipelineCiPack.multisampleStateCi.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		pipelineCiPack.depthStencilStateCi.depthTestEnable = VK_FALSE;
-		pipelineCiPack.depthStencilStateCi.depthWriteEnable = VK_FALSE;
-		pipelineCiPack.depthStencilStateCi.depthCompareOp = VK_COMPARE_OP_LESS;
-		pipelineCiPack.colorBlendAttachmentStates.resize(1);
-		pipelineCiPack.colorBlendAttachmentStates[0].colorWriteMask = 0b1111;
-		pipelineCiPack.UpdateAllArrays();
-		pipelineCiPack.createInfo.stageCount = 2;
-		pipelineCiPack.createInfo.pStages = shaderStageCreateInfos;
-		pipelines[0].Create(pipelineCiPack);
+		for (int i = 0; i < pipeNum; i++) {
+			graphicsPipelineCreateInfoPack pipelineCiPack;
+			float width = float(windowSize.width >> i);
+			float height = float(windowSize.height >> i);
+			pipelineCiPack.createInfo.layout = pipelineLayouts[0];
+			pipelineCiPack.createInfo.renderPass = renderPass;
+			pipelineCiPack.createInfo.subpass = 0;
+			pipelineCiPack.vertexInputBindings.emplace_back(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX);
+			pipelineCiPack.vertexInputAttributes.emplace_back(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position));
+			pipelineCiPack.vertexInputAttributes.emplace_back(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal));
+			pipelineCiPack.vertexInputAttributes.emplace_back(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoords));
+			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			pipelineCiPack.viewports.emplace_back(0.f, height, width, -height, 0.f, 1.f);
+			pipelineCiPack.scissors.emplace_back(VkOffset2D{}, windowSize);
+			/*pipelineCiPack.rasterizationStateCi.cullMode = VK_CULL_MODE_BACK_BIT;
+			pipelineCiPack.rasterizationStateCi.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;*/
+			pipelineCiPack.multisampleStateCi.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+			pipelineCiPack.depthStencilStateCi.depthTestEnable = VK_FALSE;
+			pipelineCiPack.depthStencilStateCi.depthWriteEnable = VK_FALSE;
+			pipelineCiPack.depthStencilStateCi.depthCompareOp = VK_COMPARE_OP_LESS;
+			pipelineCiPack.colorBlendAttachmentStates.resize(1);
+			pipelineCiPack.colorBlendAttachmentStates[0].colorWriteMask = 0b1111;
+			pipelineCiPack.UpdateAllArrays();
+			pipelineCiPack.createInfo.stageCount = 2;
+			pipelineCiPack.createInfo.pStages = shaderStageCreateInfos;
+			pipelines[i].Create(pipelineCiPack);
+		}
 	}
 
 	void CreateFaceViews(TexuteCube& texCube, bool level = false)
 	{
 		this->windowSize = texCube.texSize;
 		int levelNum = level ? texCube.mipLevels : 1;
-		faceViews.resize(levelNum * texCube.mipLevels);
+		faceViews.resize(levelNum * 6);
 		for (int mip = 0; mip < levelNum; mip++) {
 			for (int lay = 0; lay < 6; lay++) {
 				VkImageViewCreateInfo viewInfo{};

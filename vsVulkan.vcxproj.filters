@@ -71,6 +71,9 @@
     <ClInclude Include="inc\render\CubeRenderPass.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\render\IntegrateBRDFRenderPass.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\assimp.lib" />
@@ -95,6 +98,10 @@
     <None Include="shaders\texture\LatlongToCube.frag" />
     <None Include="shaders\texture\IrradianceIBL.vert" />
     <None Include="shaders\texture\IrradianceIBL.frag" />
+    <None Include="shaders\texture\PrefilterIBL.vert" />
+    <None Include="shaders\texture\PrefilterIBL.frag" />
+    <None Include="shaders\texture\IntegrateBRDF.vert" />
+    <None Include="shaders\texture\IntegrateBRDF.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg">

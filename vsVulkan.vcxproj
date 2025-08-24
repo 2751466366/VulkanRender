@@ -144,6 +144,7 @@
     <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
     <ClInclude Include="inc\render\CubeRenderPass.hpp" />
+    <ClInclude Include="inc\render\IntegrateBRDFRenderPass.hpp" />
     <ClInclude Include="inc\render\PipelineRenderPass.hpp" />
     <ClInclude Include="inc\render\DeferredRenderPass.hpp" />
     <ClInclude Include="inc\texture\TextureCube.hpp" />
@@ -176,10 +177,14 @@
     <None Include="shaders\Composition.vert" />
     <None Include="shaders\GBuffer.frag" />
     <None Include="shaders\Gbuffer.vert" />
+    <None Include="shaders\texture\IntegrateBRDF.vert" />
+    <None Include="shaders\texture\IntegrateBRDF.frag" />
     <None Include="shaders\texture\IrradianceIBL.frag" />
     <None Include="shaders\texture\IrradianceIBL.vert" />
     <None Include="shaders\texture\LatlongToCube.frag" />
     <None Include="shaders\texture\LatlongToCube.vert" />
+    <None Include="shaders\texture\PrefilterIBL.frag" />
+    <None Include="shaders\texture\PrefilterIBL.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg" />

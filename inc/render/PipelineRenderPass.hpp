@@ -54,6 +54,9 @@ public:
 		for (auto [key, val] : descriptorTypeMap) {
 			descriptorPoolSizes.push_back({ key, val });
 		}
+		if (setsNum == 0) {
+			return;
+		}
 
 		descriptorPool.Create(setsNum, descriptorPoolSizes);
 		descriptorSets.resize(descriptorSetLayouts.size());

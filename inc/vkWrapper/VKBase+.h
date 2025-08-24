@@ -1078,6 +1078,21 @@ namespace vulkan {
 			//Create image and allocate memory, create image view, then copy data from staging buffer to image
 			Create_Internal(format_initial, format_final, generateMipmap);
 		}
+		void CreateForRenderTarget(VkExtent2D extent, VkFormat format)
+		{
+			this->extent = extent;
+			VkImageCreateInfo imageCreateInfo = {
+				.imageType = VK_IMAGE_TYPE_2D,
+				.format = format,
+				.extent = { extent.width, extent.height, 1 },
+				.mipLevels = 1,
+				.arrayLayers = 1,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+			};
+			imageMemory.Create(imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			CreateImageView(VK_IMAGE_VIEW_TYPE_2D, format, 1, 1);
+		}
 	};
 	class texture2dArray :public texture {
 	protected:
