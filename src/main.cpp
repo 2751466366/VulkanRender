@@ -1,7 +1,7 @@
 #include "GlfwGeneral.hpp"
 #include "DeferredRenderPass.hpp"
 #include "Camera.hpp"
-#include "Mesh.hpp"
+#include "Model.hpp"
 #include "TextureCube.hpp"
 #include "IBLWrapper.hpp"
 
@@ -25,14 +25,14 @@ int main()
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     IBLWrapper iblWrapper;
-    iblWrapper.IBLSetup("resource/texture/hdr/appart.hdr");
+    iblWrapper.IBLSetup("resource/textures/hdr/appart.hdr");
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
 
-    Mesh cube;
-    cube.LoadCube();
-    cube.SetWorldPos();
+    Model objectModel;
+    objectModel.LoadModel("resource/models/shaderball/shaderball.obj");
+    objectModel.SetWorldPos(glm::vec3(0, 0, -30));
 
     DeferredRenderPass dfRp;
     dfRp.windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
@@ -41,7 +41,7 @@ int main()
     camera.SetProj(dfRp.windowSize.width, dfRp.windowSize.height);
 
     uniformBuffer uniformBufferMat(sizeof(glm::mat4) * 3, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    uniformBufferMat.TransferData(&cube.model, sizeof(glm::mat4), 0);
+    uniformBufferMat.TransferData(&objectModel.GetModel(), sizeof(glm::mat4), 0);
     uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), sizeof(glm::mat4));
     uniformBufferMat.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4) * 2);
 
@@ -88,6 +88,7 @@ int main()
         {.color = {0.0, 0.0, 0.0, 1.0} }, // w represents depth
         {.color = {} },
         {.color = {} },
+        {.color = {} },
         {.depthStencil = { 1.f, 0 } }
     };
 
@@ -109,7 +110,7 @@ int main()
         //G-buffer
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[0]);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 0, 1, dfRp.descriptorSets[0].Address(), 0, nullptr);
-        cube.Draw(commandBuffer);
+        objectModel.Draw(commandBuffer);
         dfRp.renderPass.CmdNext(commandBuffer);
         //Composition
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[1]);
@@ -133,12 +134,12 @@ int main()
 void LoadSkyBox(TexuteCube& skyBox)
 {
     std::vector<std::string> paths;
-    paths.push_back("resource/texture/skybox/right.jpg");
-    paths.push_back("resource/texture/skybox/left.jpg");
-    paths.push_back("resource/texture/skybox/top.jpg");
-    paths.push_back("resource/texture/skybox/bottom.jpg");
-    paths.push_back("resource/texture/skybox/back.jpg");
-    paths.push_back("resource/texture/skybox/front.jpg");
+    paths.push_back("resource/textures/skybox/right.jpg");
+    paths.push_back("resource/textures/skybox/left.jpg");
+    paths.push_back("resource/textures/skybox/top.jpg");
+    paths.push_back("resource/textures/skybox/bottom.jpg");
+    paths.push_back("resource/textures/skybox/back.jpg");
+    paths.push_back("resource/textures/skybox/front.jpg");
     skyBox.CreateWithPictures(paths);
 }
 
@@ -150,7 +151,7 @@ void processInput(GLFWwindow* window)
     float currentFrame = glfwGetTime();
     float deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-    float cameraSpeed = 5 * deltaTime;
+    float cameraSpeed = 10 * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.cameraPos += cameraSpeed * camera.cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

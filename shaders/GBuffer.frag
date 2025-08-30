@@ -3,6 +3,7 @@
 layout (location = 0) out vec4 gPosition;
 layout (location = 1) out vec4 gAlbedo;
 layout (location = 2) out vec4 gNormal;
+layout (location = 3) out vec4 gEffect;
 
 layout (location = 0) in vec3 viewPos;
 layout (location = 1) in vec2 TexCoords;
@@ -17,6 +18,7 @@ void main()
 	gPosition = vec4(viewPos, LinearizeDepth(gl_FragCoord.z));
     gAlbedo = vec4(TexCoords, 0.0, 1.0);
     gNormal = vec4(normal, 1.0);
+    gEffect = vec4(1.0, 0.0, 0.0, 0.0);
 }
 
 float LinearizeDepth(float depth)

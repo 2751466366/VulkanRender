@@ -60,47 +60,51 @@ public:
 				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
-				//{// Effects (AO + Velocity)
-				//	.format = VK_FORMAT_R16G16B16A16_SFLOAT,
-				//	.samples = VK_SAMPLE_COUNT_1_BIT,
-				//	.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-				//	.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-				//	.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				//	.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-				//	.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
-				{//Depth stencil attachment
-					.format = VK_FORMAT_D24_UNORM_S8_UINT,
-					.samples = VK_SAMPLE_COUNT_1_BIT,
-					.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-					.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-					.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-					.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-					.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }
+			{// Effects (AO + Velocity)
+				.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+			{//Depth stencil attachment
+				.format = VK_FORMAT_D24_UNORM_S8_UINT,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }
 		};
 		VkAttachmentReference attachmentReferences_subpass0[] = {
 			{ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
 			{ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
 			{ 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
-			{ 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }
+			{ 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL },
+			{ 5, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL }
 		};
 		VkAttachmentReference attachmentReferences_subpass1[] = {
 			{ 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
 			{ 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
 			{ 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+			{ 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
 			{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL }
 		};
 		VkSubpassDescription subpassDescriptions[] = {
 			{
 				.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-				.colorAttachmentCount = 3,
+				.colorAttachmentCount = GET_ARRAY_NUM(attachmentReferences_subpass0) - 1,
 				.pColorAttachments = attachmentReferences_subpass0,
-				.pDepthStencilAttachment = attachmentReferences_subpass0 + 3 },
+				.pDepthStencilAttachment =
+				    attachmentReferences_subpass0 + (GET_ARRAY_NUM(attachmentReferences_subpass0) - 1) },
 			{
 				.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-				.inputAttachmentCount = 3,
+				.inputAttachmentCount = GET_ARRAY_NUM(attachmentReferences_subpass1) - 1,
 				.pInputAttachments = attachmentReferences_subpass1,
 				.colorAttachmentCount = 1,
-				.pColorAttachments = attachmentReferences_subpass1 + 3 }
+				.pColorAttachments =
+				    attachmentReferences_subpass1 + (GET_ARRAY_NUM(attachmentReferences_subpass1) - 1) }
 		};
 		VkSubpassDependency subpassDependencies[] = {
 			{
@@ -121,18 +125,18 @@ public:
 				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT }
 		};
 		VkRenderPassCreateInfo renderPassCreateInfo = {
-			.attachmentCount = sizeof(attachmentDescriptions) / sizeof(attachmentDescriptions[0]),
+			.attachmentCount = GET_ARRAY_NUM(attachmentDescriptions),
 			.pAttachments = attachmentDescriptions,
-			.subpassCount = sizeof(subpassDescriptions) / sizeof(subpassDescriptions[0]),
+			.subpassCount = GET_ARRAY_NUM(subpassDescriptions),
 			.pSubpasses = subpassDescriptions,
-			.dependencyCount = sizeof(subpassDependencies) / sizeof(subpassDependencies[0]),
+			.dependencyCount = GET_ARRAY_NUM(subpassDependencies),
 			.pDependencies = subpassDependencies
 		};
 		renderPass.Create(renderPassCreateInfo);
 		auto CreateFramebuffers = [&] {
 			VkExtent2D windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
 			framebuffers.resize(graphicsBase::Base().SwapchainImageCount());
-			colorAttachments.resize(3);
+			colorAttachments.resize(4);
 			depthStencilAttachments.resize(1);
 
 			// Position
@@ -142,7 +146,7 @@ public:
 			// Normals + Metalness
 			colorAttachments[2].Create(VK_FORMAT_R16G16B16A16_SFLOAT, windowSize, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT);
 			//// Effects (AO + Velocity)
-			//mColorAttachments[3].Create(VK_FORMAT_R16G16B16A16_SFLOAT, windowSize, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT);
+			colorAttachments[3].Create(VK_FORMAT_R16G16B16A16_SFLOAT, windowSize, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT);
 
 			depthStencilAttachments[0].Create(VK_FORMAT_D24_UNORM_S8_UINT, windowSize, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT);
 			VkImageView attachments[] = {
@@ -150,7 +154,7 @@ public:
 				colorAttachments[0].ImageView(),
 				colorAttachments[1].ImageView(),
 				colorAttachments[2].ImageView(),
-				//mColorAttachments[3].ImageView(),
+				colorAttachments[3].ImageView(),
 				depthStencilAttachments[0].ImageView()
 			};
 			VkFramebufferCreateInfo framebufferCreateInfo = {
@@ -255,10 +259,11 @@ public:
 			pipelineCiPack.depthStencilStateCi.depthTestEnable = VK_TRUE;
 			pipelineCiPack.depthStencilStateCi.depthWriteEnable = VK_TRUE;
 			pipelineCiPack.depthStencilStateCi.depthCompareOp = VK_COMPARE_OP_LESS;
-			pipelineCiPack.colorBlendAttachmentStates.resize(3);
+			pipelineCiPack.colorBlendAttachmentStates.resize(4);
 			pipelineCiPack.colorBlendAttachmentStates[0].colorWriteMask = 0b1111;
 			pipelineCiPack.colorBlendAttachmentStates[1].colorWriteMask = 0b1111;
 			pipelineCiPack.colorBlendAttachmentStates[2].colorWriteMask = 0b1111;
+			pipelineCiPack.colorBlendAttachmentStates[3].colorWriteMask = 0b1111;
 			pipelineCiPack.UpdateAllArrays();
 			pipelineCiPack.createInfo.stageCount = 2;
 			pipelineCiPack.createInfo.pStages = shaderStageCreateInfos_gBuffer;

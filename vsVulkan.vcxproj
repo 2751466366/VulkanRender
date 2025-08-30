@@ -143,6 +143,7 @@
     <ClInclude Include="inc\common.h" />
     <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\mesh\Mesh.hpp" />
+    <ClInclude Include="inc\mesh\Model.hpp" />
     <ClInclude Include="inc\render\CubeRenderPass.hpp" />
     <ClInclude Include="inc\render\IntegrateBRDFRenderPass.hpp" />
     <ClInclude Include="inc\render\PipelineRenderPass.hpp" />

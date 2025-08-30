@@ -7,10 +7,18 @@ public:
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     glm::mat4 model = glm::mat4(1.f);
-    vertexBuffer vertexBuffer;
-    indexBuffer indexBuffer;
     Mesh() = default;
-    Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
+    Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+    {
+        this->vertices = vertices;
+        this->indices = indices;
+    }
+    Mesh(const Mesh& mesh)
+    {
+        this->vertices = mesh.vertices;
+        this->indices = mesh.indices;
+        this->model = mesh.model;
+    }
     ~Mesh() = default;
     void LoadCube()
     {
@@ -60,10 +68,6 @@ public:
             // 下面
             20,21,22,22,23,20
         };
-        vertexBuffer.Create(vertices.size() * sizeof(Vertex));
-        vertexBuffer.TransferData(vertices.data(), vertices.size() * sizeof(Vertex));
-        indexBuffer.Create(indices.size() * sizeof(uint32_t));
-        indexBuffer.TransferData(indices.data(), indices.size() * sizeof(uint32_t));
     }
 
     void LoadQuad()
@@ -77,21 +81,38 @@ public:
         indices = {
             0, 1, 2, 3
         };
-        vertexBuffer.Create(vertices.size() * sizeof(Vertex));
-        vertexBuffer.TransferData(vertices.data(), vertices.size() * sizeof(Vertex));
-        indexBuffer.Create(indices.size() * sizeof(uint32_t));
-        indexBuffer.TransferData(indices.data(), indices.size() * sizeof(uint32_t));
     }
 
     void SetWorldPos(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f)) {
         model = glm::translate(model, pos);
     }
 
+    void InitVulkanData()
+    {
+        if (isInit) {
+            std::cout << "mesh already init\n";
+            return;
+        }
+        isInit = true;
+        vertexBuffer.Create(vertices.size() * sizeof(Vertex));
+        vertexBuffer.TransferData(vertices.data(), vertices.size() * sizeof(Vertex));
+        indexBuffer.Create(indices.size() * sizeof(uint32_t));
+        indexBuffer.TransferData(indices.data(), indices.size() * sizeof(uint32_t));
+    }
+
     void Draw(const commandBuffer& commandBuffer)
     {
+        if (!isInit) {
+            InitVulkanData();
+        }
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffer.Address(), &offset);
         vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, indices.size(), 1, 0, 0, 0);
     }
+
+private:
+    bool isInit = false;
+    vertexBuffer vertexBuffer;
+    indexBuffer indexBuffer;
 };
