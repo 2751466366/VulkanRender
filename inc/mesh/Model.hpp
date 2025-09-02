@@ -33,8 +33,42 @@ public:
     void SetWorldPos(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f)) {
         model = glm::translate(model, pos);
     }
+
+    void LoadTexuture(std::string path)
+    {
+        std::string name = path.substr(path.find_last_of('/'));
+        std::vector<std::string> pathList;
+        pathList.push_back(path + name + "_albedo.png");
+        pathList.push_back(path + name + "_normal.png");
+        pathList.push_back(path + name + "_roughness.png");
+        pathList.push_back(path + name + "_metalness.png");
+        pathList.push_back(path + name + "_ao.png");
+
+        textureList.resize(5);
+        samplerList.resize(5);
+        textureInfoList.resize(5);
+        for (int i = 0; i < 5; i++) {
+            textureList[i].Create(
+                pathList[i].c_str(),
+                VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT
+            );
+            VkSamplerCreateInfo samplerCreateInfo = textureList[i].SamplerCreateInfo();
+            samplerList[i].Create(samplerCreateInfo);
+            textureInfoList[i] = {
+                samplerList[i], textureList[i].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            };
+        }
+    }
+
+    const std::vector<VkDescriptorImageInfo>& GetTextureInfo()
+    {
+        return textureInfoList;
+    }
 private:
     std::vector<Mesh> meshes;
+    std::vector<texture2d> textureList;
+    std::vector<sampler> samplerList;
+    std::vector<VkDescriptorImageInfo> textureInfoList;
     std::string directory;
     glm::mat4 model = glm::mat4(1.f);
 

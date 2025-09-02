@@ -9,16 +9,34 @@ layout (location = 0) in vec3 viewPos;
 layout (location = 1) in vec2 TexCoords;
 layout (location = 2) in vec3 normal;
 
+layout (set = 1, binding = 0) uniform sampler2D texAlbedo;
+layout (set = 1, binding = 1) uniform sampler2D texNormal;
+layout (set = 1, binding = 2) uniform sampler2D texRoughness;
+layout (set = 1, binding = 3) uniform sampler2D texMetalness;
+layout (set = 1, binding = 4) uniform sampler2D texAO;
+
 const float nearPlane = 1.0f;
 const float farPlane = 1000.0f;
 
 float LinearizeDepth(float depth);
+vec3 computeTexNormal(vec3 viewNormal, vec3 texNormal);
 void main()
 {
+    vec3 texNormal = normalize(texture(texNormal, TexCoords).rgb * 2.0f - 1.0f);
+    texNormal.g = -texNormal.g;   // In case the normal map was made with DX3D coordinates system in mind
+
 	gPosition = vec4(viewPos, LinearizeDepth(gl_FragCoord.z));
-    gAlbedo = vec4(TexCoords, 0.0, 1.0);
-    gNormal = vec4(normal, 1.0);
-    gEffect = vec4(1.0, 0.0, 0.0, 0.0);
+
+    //gAlbedo = vec4(TexCoords, 0.0, 1.0);
+    //gNormal = vec4(normal, 1.0);
+    //gEffect = vec4(1.0, 0.0, 0.0, 0.0);
+
+    gAlbedo.rgb = vec3(texture(texAlbedo, TexCoords));
+    gAlbedo.a =  vec3(texture(texRoughness, TexCoords)).r;
+    gNormal.rgb = computeTexNormal(normal, texNormal);
+    gNormal.a = vec3(texture(texMetalness, TexCoords)).r;
+    //gEffect.r = vec3(texture(texAO, TexCoords)).r;
+    //gEffect.gb = fragPosA - fragPosB;
 }
 
 float LinearizeDepth(float depth)

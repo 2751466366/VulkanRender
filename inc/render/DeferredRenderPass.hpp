@@ -184,19 +184,40 @@ public:
 	}
 	void CreatePipelineLayout()
 	{
-		descriptorSetLayouts.resize(2);
+		descriptorSetLayouts.resize(3);
 		pipelineLayouts.resize(2);
+
+		descriptorSetLayout& gBufferSetLayout = descriptorSetLayouts[0];
+		descriptorSetLayout& compositionSetLayout = descriptorSetLayouts[1];
+		descriptorSetLayout& modelInfoSetLayout = descriptorSetLayouts[2];
 		//G-buffer
-		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding_gBuffer[] =
-		{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT };
+		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding_gBuffer[] = {
+			{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT },
+		};
+		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding_gModelInfo[] = {
+			{ 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		};
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-			.bindingCount = (sizeof(descriptorSetLayoutBinding_gBuffer) / sizeof(VkDescriptorSetLayoutBinding)),
+			.bindingCount = GET_ARRAY_NUM(descriptorSetLayoutBinding_gBuffer),
 			.pBindings = descriptorSetLayoutBinding_gBuffer
 		};
-		descriptorSetLayouts[0].Create(descriptorSetLayoutCreateInfo);
+		gBufferSetLayout.Create(descriptorSetLayoutCreateInfo);
+
+		descriptorSetLayoutCreateInfo.bindingCount =
+			GET_ARRAY_NUM(descriptorSetLayoutBinding_gModelInfo);
+		descriptorSetLayoutCreateInfo.pBindings =
+			descriptorSetLayoutBinding_gModelInfo;
+		modelInfoSetLayout.Create(descriptorSetLayoutCreateInfo);
+
+		VkDescriptorSetLayout layouts[] = { gBufferSetLayout, modelInfoSetLayout };
+
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-			.setLayoutCount = 1,
-			.pSetLayouts = descriptorSetLayouts[0].Address()
+			.setLayoutCount = GET_ARRAY_NUM(layouts),
+			.pSetLayouts = layouts,
 		};
 		pipelineLayouts[0].Create(pipelineLayoutCreateInfo);
 
@@ -209,21 +230,20 @@ public:
 			// invMat
 			{ 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT }
 		};
-		descriptorSetLayoutCreateInfo.bindingCount = (sizeof(descriptorSetLayoutBindings_composition) / sizeof(VkDescriptorSetLayoutBinding));
-		descriptorSetLayoutCreateInfo.pBindings = descriptorSetLayoutBindings_composition;
-		descriptorSetLayouts[1].Create(descriptorSetLayoutCreateInfo);
-		pipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayouts[1].Address();
+		descriptorSetLayoutCreateInfo.bindingCount =
+			GET_ARRAY_NUM(descriptorSetLayoutBindings_composition);
+		descriptorSetLayoutCreateInfo.pBindings =
+			descriptorSetLayoutBindings_composition;
+		compositionSetLayout.Create(descriptorSetLayoutCreateInfo);
+		pipelineLayoutCreateInfo.pSetLayouts = compositionSetLayout.Address();
 		pipelineLayouts[1].Create(pipelineLayoutCreateInfo);
 
 
 		// record layout data for create descriptorPool
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		AddSetsNum();
-
 		AddDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3);
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		AddSetsNum();
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6);
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
+		AddSetsNum(3);
 	}
 	void CreatePipeline()
 	{
@@ -274,7 +294,7 @@ public:
 			pipelineCiPack.createInfo.pStages = shaderStageCreateInfos_composition;
 			pipelineCiPack.vertexInputStateCi.vertexBindingDescriptionCount = 0;
 			pipelineCiPack.vertexInputStateCi.vertexAttributeDescriptionCount = 0;
-			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 			pipelineCiPack.colorBlendStateCi.attachmentCount = 1;
 			pipelines[1].Create(pipelineCiPack);
 		};
@@ -286,4 +306,8 @@ public:
 		graphicsBase::Base().AddCallback_DestroySwapchain(name, Destroy);
 		Create();
 	}
+
+	const descriptorSet& GetGBufferSet() { return descriptorSets[0]; }
+	const descriptorSet& GetModelInfoSet() { return descriptorSets[2]; }
+	const descriptorSet& GetCompositionSet() { return descriptorSets[1]; }
 };

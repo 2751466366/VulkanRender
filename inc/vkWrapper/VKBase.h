@@ -1964,6 +1964,17 @@ namespace vulkan {
 		void Write(arrayRef<const bufferView> descriptorInfos, VkDescriptorType descriptorType, uint32_t dstBinding = 0, uint32_t dstArrayElement = 0) const {
 			Write({ descriptorInfos[0].Address(), descriptorInfos.Count() }, descriptorType, dstBinding, dstArrayElement);
 		}
+		void Write(const std::vector<VkDescriptorImageInfo>& descriptorInfos, VkDescriptorType descriptorType, uint32_t dstBinding = 0, uint32_t dstArrayElement = 0) const {
+			VkWriteDescriptorSet writeDescriptorSet = {
+				.dstSet = handle,
+				.dstBinding = dstBinding,
+				.dstArrayElement = dstArrayElement,
+				.descriptorCount = uint32_t(descriptorInfos.size()),
+				.descriptorType = descriptorType,
+				.pImageInfo = descriptorInfos.data()
+			};
+			Update(writeDescriptorSet);
+		}
 		//Static Function
 		static void Update(arrayRef<VkWriteDescriptorSet> writes, arrayRef<VkCopyDescriptorSet> copies = {}) {
 			for (auto& i : writes)

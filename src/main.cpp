@@ -25,13 +25,14 @@ int main()
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     IBLWrapper iblWrapper;
-    iblWrapper.IBLSetup("resource/textures/hdr/appart.hdr");
+    iblWrapper.IBLSetup("resource/textures/hdr/loft.hdr");
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
 
     Model objectModel;
     objectModel.LoadModel("resource/models/shaderball/shaderball.obj");
+    objectModel.LoadTexuture("resource/textures/pbr/rustediron");
     objectModel.SetWorldPos(glm::vec3(0, 0, -30));
 
     DeferredRenderPass dfRp;
@@ -61,18 +62,21 @@ int main()
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    dfRp.descriptorSets[0].Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
+    const descriptorSet& gBufferSetLayout = dfRp.GetGBufferSet();
+    const descriptorSet& compositionLayout = dfRp.GetCompositionSet();
+    const descriptorSet& modelInfoLayout = dfRp.GetModelInfoSet();
+    gBufferSetLayout.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
     auto UpdateDescriptorSet_InputAttachments = [&] {
         VkDescriptorImageInfo imageInfos[] = {
         	{ VK_NULL_HANDLE, dfRp.colorAttachments[0].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
         	{ VK_NULL_HANDLE, dfRp.colorAttachments[1].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
             { VK_NULL_HANDLE, dfRp.colorAttachments[2].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
-        dfRp.descriptorSets[1].Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
+        compositionLayout.Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
         VkDescriptorImageInfo textureInfo[] = {
             { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
         };
-        dfRp.descriptorSets[1].Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
+        compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
     };
     graphicsBase::Base().AddCallback_CreateSwapchain(dfRp.name, UpdateDescriptorSet_InputAttachments);
     UpdateDescriptorSet_InputAttachments();
@@ -81,7 +85,7 @@ int main()
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    dfRp.descriptorSets[1].Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
+    compositionLayout.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
 
     VkClearValue clearValues[] = {
         {.color = {} },
@@ -109,13 +113,16 @@ int main()
         dfRp.renderPass.CmdBegin(commandBuffer, dfRp.framebuffers[i], { {}, dfRp.windowSize }, clearValues);
         //G-buffer
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[0]);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 0, 1, dfRp.descriptorSets[0].Address(), 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 0, 1, gBufferSetLayout.Address(), 0, nullptr);
+        
+        modelInfoLayout.Write(objectModel.GetTextureInfo(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 1, 1, modelInfoLayout.Address(), 0, nullptr);
         objectModel.Draw(commandBuffer);
         dfRp.renderPass.CmdNext(commandBuffer);
         //Composition
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[1]);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[1], 0, 1, dfRp.descriptorSets[1].Address(), 0, nullptr);
-        vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[1], 0, 1, compositionLayout.Address(), 0, nullptr);
+        vkCmdDraw(commandBuffer, 4, 1, 0, 0);
         dfRp.renderPass.CmdEnd(commandBuffer);
         commandBuffer.End();
         
