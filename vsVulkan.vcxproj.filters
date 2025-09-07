@@ -77,6 +77,12 @@
     <ClInclude Include="inc\mesh\Model.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\render\GBuffersRenderPass.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\render\LightingRenderPass.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\assimp.lib" />

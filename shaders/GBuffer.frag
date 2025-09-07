@@ -22,20 +22,16 @@ float LinearizeDepth(float depth);
 vec3 computeTexNormal(vec3 viewNormal, vec3 texNormal);
 void main()
 {
-    vec3 texNormal = normalize(texture(texNormal, TexCoords).rgb * 2.0f - 1.0f);
+    vec3 texNormal = normalize(texture(texNormal, TexCoords).rgb);
     texNormal.g = -texNormal.g;   // In case the normal map was made with DX3D coordinates system in mind
 
 	gPosition = vec4(viewPos, LinearizeDepth(gl_FragCoord.z));
-
-    //gAlbedo = vec4(TexCoords, 0.0, 1.0);
-    //gNormal = vec4(normal, 1.0);
-    //gEffect = vec4(1.0, 0.0, 0.0, 0.0);
 
     gAlbedo.rgb = vec3(texture(texAlbedo, TexCoords));
     gAlbedo.a =  vec3(texture(texRoughness, TexCoords)).r;
     gNormal.rgb = computeTexNormal(normal, texNormal);
     gNormal.a = vec3(texture(texMetalness, TexCoords)).r;
-    //gEffect.r = vec3(texture(texAO, TexCoords)).r;
+    gEffect.r = vec3(texture(texAO, TexCoords)).r;
     //gEffect.gb = fragPosA - fragPosB;
 }
 

@@ -2,6 +2,8 @@ glslc -c GBuffer.frag
 glslc -c GBuffer.vert
 glslc -c Composition.frag
 glslc -c Composition.vert
+glslc -c Lighting.frag
+glslc -c Lighting.vert
 
 cd texture
 glslc -c LatlongToCube.frag

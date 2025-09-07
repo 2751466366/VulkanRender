@@ -1,25 +1,19 @@
 #version 450 core
 
-vec2 positions[4] = {
-	{-1.0f, 1.0f},
-	{-1.0f,-1.0f},
-	{ 1.0f, 1.0f},
-	{ 1.0f,-1.0f}
-};
-
-layout(location = 0) out vec3 i_Position;
-layout(set = 0, binding = 2) uniform transformData {
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec2 texCoords;
+layout(location = 0) out vec2 TexCoords;
+layout(location = 1) out vec3 envMapCoords;
+layout(binding = 5) uniform transformData {
     mat4 invView;
     mat4 invProj;
 } invTransform;
 
 void main() {
-	vec2 ndc = positions[gl_VertexIndex];
+	TexCoords = texCoords;
+    vec4 unprojCoords = (invTransform.invProj * vec4(position.xy, vec2(1.0f)));
+    envMapCoords = (invTransform.invView * unprojCoords).xyz;
 
-	vec4 clip = vec4(ndc.x, ndc.y, 1.0, 1.0);
-    vec4 view = invTransform.invProj * clip;
-    vec3 worldPos = (invTransform.invView * view).xyz;
-
-	i_Position = worldPos;
-	gl_Position = vec4(ndc, 0, 1);
+    gl_Position = vec4(position, 1.0f);
 }

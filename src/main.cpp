@@ -1,5 +1,7 @@
 #include "GlfwGeneral.hpp"
 #include "DeferredRenderPass.hpp"
+#include "GBuffersRenderPass.hpp"
+#include "LightingRenderPass.hpp"
 #include "Camera.hpp"
 #include "Model.hpp"
 #include "TextureCube.hpp"
@@ -7,6 +9,8 @@
 
 float lastFrame = 0.0f;
 bool firstMouse = true;
+bool enableView = false;
+bool needResetView = true;
 float lastX = 0.0;
 float lastY = 0.0;
 float yaw = -90.0f; // yaw is initialized to -90.0 degrees, to rotate the camera to the right
@@ -14,41 +18,69 @@ float pitch = 0.0f; // pitch is initialized to 0.0 degrees, to keep the camera l
 Camera camera;
 
 void processInput(GLFWwindow* window);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void LoadSkyBox(TexuteCube& skyBox);
 
 int main()
 {
 	if (!InitializeWindow(vulkan::defaultWindowSize))
 		return -1;
-    glfwSetCursorPosCallback(pWindow, mouse_callback);
-    glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    stbi_set_flip_vertically_on_load(true);
+
+    glfwSetMouseButtonCallback(pWindow, mouseButtonCallback);
+    //glfwSetKeyCallback(pWindow, keyCallback);
+    glfwSetCursorPosCallback(pWindow, mouseCallback);
+    glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+    Mesh quad;
+    quad.LoadQuad();
 
     IBLWrapper iblWrapper;
-    iblWrapper.IBLSetup("resource/textures/hdr/loft.hdr");
+    iblWrapper.IBLSetup("resource/textures/hdr/golden_gate_hills_2k.hdr");
+    //iblWrapper.IBLSetup("resource/textures/hdr/canyon.hdr");
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
+
+    GBuffersRenderPass gBufferRP;
+    gBufferRP.windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
+    gBufferRP.CreatePipelineRenderPass();
+
+    LightingRenderPass lightingRP;
+    lightingRP.windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
+    lightingRP.CreatePipelineRenderPass();
+
 
     Model objectModel;
     objectModel.LoadModel("resource/models/shaderball/shaderball.obj");
     objectModel.LoadTexuture("resource/textures/pbr/rustediron");
     objectModel.SetWorldPos(glm::vec3(0, 0, -30));
+    gBufferRP.AllocateModelSet(objectModel.GetDescriptorSet());
+    objectModel.InitUnifom();
+    objectModel.LoadModelInfoToDescriptorSet();
 
-    DeferredRenderPass dfRp;
-    dfRp.windowSize = graphicsBase::Base().SwapchainCreateInfo().imageExtent;
-    dfRp.CreatePipelineRenderPass();
+    Model objectModel1;
+    objectModel1.LoadModel("resource/models/shaderball/shaderball.obj");
+    objectModel1.LoadTexuture("resource/textures/pbr/rustediron");
+    objectModel1.SetWorldPos(glm::vec3(0, 0, 30));
+    gBufferRP.AllocateModelSet(objectModel1.GetDescriptorSet());
+    objectModel1.InitUnifom();
+    objectModel1.LoadModelInfoToDescriptorSet();
 
-    camera.SetProj(dfRp.windowSize.width, dfRp.windowSize.height);
+    camera.SetProj(gBufferRP.windowSize.width, gBufferRP.windowSize.height);
 
-    uniformBuffer uniformBufferMat(sizeof(glm::mat4) * 3, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    uniformBufferMat.TransferData(&objectModel.GetModel(), sizeof(glm::mat4), 0);
-    uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), sizeof(glm::mat4));
-    uniformBufferMat.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4) * 2);
+    uniformBuffer uniformBufferMat(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), 0);
+    uniformBufferMat.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4));
 
     uniformBuffer uniformBufferInvMat(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     uniformBufferInvMat.TransferData(&camera.invView, sizeof(glm::mat4), 0);
     uniformBufferInvMat.TransferData(&camera.invProj, sizeof(glm::mat4), sizeof(glm::mat4));
+
+    uniformBuffer uniformBuffer_lighting(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    uniformBuffer_lighting.TransferData(&camera.view, sizeof(glm::mat4), 0);
 
     fence fence;
 	semaphore semaphore_imageIsAvailable;
@@ -62,47 +94,62 @@ int main()
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    const descriptorSet& gBufferSetLayout = dfRp.GetGBufferSet();
-    const descriptorSet& compositionLayout = dfRp.GetCompositionSet();
-    const descriptorSet& modelInfoLayout = dfRp.GetModelInfoSet();
-    gBufferSetLayout.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
-    auto UpdateDescriptorSet_InputAttachments = [&] {
-        VkDescriptorImageInfo imageInfos[] = {
-        	{ VK_NULL_HANDLE, dfRp.colorAttachments[0].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
-        	{ VK_NULL_HANDLE, dfRp.colorAttachments[1].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
-            { VK_NULL_HANDLE, dfRp.colorAttachments[2].ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
-        };
-        compositionLayout.Write(imageInfos, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, 0);
-        VkDescriptorImageInfo textureInfo[] = {
-            { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
-        };
-        compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 0);
-    };
-    graphicsBase::Base().AddCallback_CreateSwapchain(dfRp.name, UpdateDescriptorSet_InputAttachments);
-    UpdateDescriptorSet_InputAttachments();
     VkDescriptorBufferInfo bufferInfoInvMat = {
         .buffer = uniformBufferInvMat,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    compositionLayout.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
+    VkDescriptorBufferInfo bufferInfoMat_lighting = {
+        .buffer = uniformBuffer_lighting,
+        .offset = 0,
+        .range = VK_WHOLE_SIZE
+    };
+    const descriptorSet& gBufferSetLayout = gBufferRP.GetGBufferSet();
+    const descriptorSet& compositionLayout = lightingRP.GetCompositionSet();
 
-    VkClearValue clearValues[] = {
-        {.color = {} },
+    gBufferSetLayout.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
+
+    VkDescriptorImageInfo gBufferInfo;
+    gBufferInfo.sampler = gBufferRP.GetSampler();
+    gBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    for (int i = 0; i < 4; i++) {
+        gBufferInfo.imageView = gBufferRP.GetImageView(i);
+        compositionLayout.Write(gBufferInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, 0);
+    }
+
+    VkDescriptorImageInfo textureInfo =
+    { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 0);
+    textureInfo =
+    { iblWrapper.irraTex.sample, iblWrapper.irraTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 0);
+    textureInfo =
+    { iblWrapper.prefilterTex.sample, iblWrapper.prefilterTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 0);
+    textureInfo =
+    { iblWrapper.integrateBRDFTexSampler, iblWrapper.integrateBRDFTex.ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7, 0);
+
+    compositionLayout.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
+    compositionLayout.Write(bufferInfoMat_lighting, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9);
+
+    VkClearValue gbufferClearValues[] = {
         {.color = {0.0, 0.0, 0.0, 1.0} }, // w represents depth
         {.color = {} },
         {.color = {} },
         {.color = {} },
         {.depthStencil = { 1.f, 0 } }
     };
+    VkClearValue lightingClearValues = { .color = {} };
 
     while (!glfwWindowShouldClose(pWindow)) {
         while (glfwGetWindowAttrib(pWindow, GLFW_ICONIFIED))
-            glfwWaitEvents();
+            glfwPollEvents();
         processInput(pWindow);
 
         camera.updateView();
-        uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), sizeof(glm::mat4));
+        uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), 0);
+        uniformBuffer_lighting.TransferData(&camera.view, sizeof(glm::mat4), 0);
         uniformBufferInvMat.TransferData(&camera.invView, sizeof(glm::mat4), 0);
 
         graphicsBase::Base().SwapImage(semaphore_imageIsAvailable);
@@ -110,23 +157,29 @@ int main()
         
         commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-        dfRp.renderPass.CmdBegin(commandBuffer, dfRp.framebuffers[i], { {}, dfRp.windowSize }, clearValues);
-        //G-buffer
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[0]);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 0, 1, gBufferSetLayout.Address(), 0, nullptr);
+        gBufferRP.renderPass.CmdBegin(commandBuffer, gBufferRP.framebuffers[0], { {}, gBufferRP.windowSize }, gbufferClearValues);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelines[0]);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 0, 1, gBufferSetLayout.Address(), 0, nullptr);
         
-        modelInfoLayout.Write(objectModel.GetTextureInfo(), VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[0], 1, 1, modelInfoLayout.Address(), 0, nullptr);
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 1, 1, objectModel1.GetDescriptorSet().Address(), 0, nullptr);
+        objectModel1.Draw(commandBuffer);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 1, 1, objectModel.GetDescriptorSet().Address(), 0, nullptr);
         objectModel.Draw(commandBuffer);
-        dfRp.renderPass.CmdNext(commandBuffer);
-        //Composition
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelines[1]);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, dfRp.pipelineLayouts[1], 0, 1, compositionLayout.Address(), 0, nullptr);
-        vkCmdDraw(commandBuffer, 4, 1, 0, 0);
-        dfRp.renderPass.CmdEnd(commandBuffer);
+
+        gBufferRP.renderPass.CmdEnd(commandBuffer);
+
+        lightingRP.renderPass.CmdBegin(commandBuffer, lightingRP.framebuffers[i], { {}, lightingRP.windowSize }, lightingClearValues);
+        
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightingRP.pipelines[0]);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightingRP.pipelineLayouts[0], 0, 1, compositionLayout.Address(), 0, nullptr);
+        quad.Draw(commandBuffer);
+
+        lightingRP.renderPass.CmdEnd(commandBuffer);
+        
         commandBuffer.End();
         
-        graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, semaphore_imageIsAvailable, semaphore_renderingIsOver, fence, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, semaphore_imageIsAvailable, semaphore_renderingIsOver, fence);
         graphicsBase::Base().PresentImage(semaphore_renderingIsOver);
         
         glfwPollEvents();
@@ -150,6 +203,44 @@ void LoadSkyBox(TexuteCube& skyBox)
     skyBox.CreateWithPictures(paths);
 }
 
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        //std::cout << "Key pressed: " << key << std::endl;
+        if (key == GLFW_KEY_ESCAPE)
+            glfwSetWindowShouldClose(window, true);
+
+        float currentFrame = glfwGetTime();
+        float deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+        float cameraSpeed = 10 * deltaTime;
+        if (key == GLFW_KEY_W)
+            camera.cameraPos += cameraSpeed * camera.cameraFront;
+        if (key == GLFW_KEY_S)
+            camera.cameraPos -= cameraSpeed * camera.cameraFront;
+        if (key == GLFW_KEY_A)
+            camera.cameraPos -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * cameraSpeed;
+        if (key == GLFW_KEY_D)
+            camera.cameraPos += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * cameraSpeed;
+    }
+    else if (action == GLFW_RELEASE) {
+        //std::cout << "Key released: " << key << std::endl;
+    }
+}
+
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            enableView = true;
+        }
+    }
+    else if (action == GLFW_RELEASE) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT) {
+            needResetView = true;
+            enableView = false;
+        }
+    }
+}
+
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -158,7 +249,7 @@ void processInput(GLFWwindow* window)
     float currentFrame = glfwGetTime();
     float deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-    float cameraSpeed = 10 * deltaTime;
+    float cameraSpeed = 30 * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.cameraPos += cameraSpeed * camera.cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -169,8 +260,15 @@ void processInput(GLFWwindow* window)
         camera.cameraPos += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUp)) * cameraSpeed;
 }
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
+    if (!enableView)
+        return;
+    if (needResetView) {
+        needResetView = false;
+        firstMouse = true;
+    }
+
     if (firstMouse)
     {
         lastX = xpos;
@@ -183,7 +281,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     lastX = xpos;
     lastY = ypos;
 
-    float sensitivity = 0.05f; // change this value to your liking
+    float sensitivity = 0.1f; // change this value to your liking
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 

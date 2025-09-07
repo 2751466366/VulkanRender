@@ -22,11 +22,11 @@ public:
     TexuteCube prefilterTex;
     CubeRenderPass prefilterRenderPass;
     texture2d integrateBRDFTex;
+    sampler integrateBRDFTexSampler;
     IntegrateBRDFRenderPass integrateBRDFRenderPass;
 
 	void IBLSetup(std::string path)
 	{
-        stbi_set_flip_vertically_on_load(true);
         VkClearValue clearValues = { 0 };
         fence fence;
         // get CommandBuffer
@@ -35,18 +35,18 @@ public:
         // Vulkan cube map face order: +X, -X, +Y, -Y, +Z, -Z
         envMapViews[0] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));  // +X
         envMapViews[1] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)); // -X
-        envMapViews[2] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // +Y
+        envMapViews[2] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f, 0.0f), glm::vec3(0.0f, 0.0f,  1.0f)); // +Y
         envMapViews[3] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)); // -Y
         envMapViews[4] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));  // +Z
         envMapViews[5] = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)); // -Z
         envMapProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        envMapProjection[1][1] *= -1;
+        //envMapProjection[1][1] *= -1;
         cube.LoadCube();
         quad.LoadQuad();
 	    hdrTexture.Create(
 			path.c_str(),
-			VK_FORMAT_R32G32B32A32_SFLOAT,
-			VK_FORMAT_R32G32B32A32_SFLOAT
+            VK_FORMAT_R32G32B32A32_SFLOAT,
+            VK_FORMAT_R32G32B32A32_SFLOAT
 		);
         VkSamplerCreateInfo samplerCreateInfo = hdrTexture.SamplerCreateInfo();
         hdrTexSampler.Create(samplerCreateInfo);
@@ -203,6 +203,15 @@ public:
                 fence.WaitAndReset();
             }
         }
+        commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        prefilterTex.TransitionImage(commandBuffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            { VK_IMAGE_ASPECT_COLOR_BIT, 0, prefilterTex.mipLevels, 0, 6 },
+            0, VK_ACCESS_SHADER_READ_BIT,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        commandBuffer.End();
+        graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, VK_NULL_HANDLE, VK_NULL_HANDLE, fence, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        fence.WaitAndReset();
 
 
         integrateBRDFTex.CreateForRenderTarget(windowSize, VK_FORMAT_R16G16_SFLOAT);
@@ -227,6 +236,19 @@ public:
         commandBuffer.End();
         graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, VK_NULL_HANDLE, VK_NULL_HANDLE, fence, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
         fence.WaitAndReset();
+
+        commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        TransitionImage(commandBuffer, integrateBRDFTex,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
+            0, VK_ACCESS_SHADER_READ_BIT,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        commandBuffer.End();
+        graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, VK_NULL_HANDLE, VK_NULL_HANDLE, fence, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
+        fence.WaitAndReset();
+
+        samplerCreateInfo = integrateBRDFTex.SamplerCreateInfo();
+        integrateBRDFTexSampler.Create(samplerCreateInfo);
 	}
 
     void TransitionImage(const commandBuffer& cmd, texture2d &tex,

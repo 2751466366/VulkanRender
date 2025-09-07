@@ -106,7 +106,7 @@ public:
 			pipelineLayouts[i].Create(pipelineLayoutCreateInfo);
 
 			for (int n = 0; n < descriptorSetInfos[i].size(); n++) {
-				AddDescriptorType(descriptorSetInfos[i][n].descriptorType);
+				AddDescriptorType(descriptorSetInfos[i][n].descriptorType, descriptorSetInfos[i][n].descriptorCount);
 			}
 			AddSetsNum();
 		}
@@ -134,7 +134,8 @@ public:
 			pipelineCiPack.vertexInputAttributes.emplace_back(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal));
 			pipelineCiPack.vertexInputAttributes.emplace_back(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoords));
 			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-			pipelineCiPack.viewports.emplace_back(0.f, height, width, -height, 0.f, 1.f);
+			//pipelineCiPack.viewports.emplace_back(0.f, height, width, -height, 0.f, 1.f);
+			pipelineCiPack.viewports.emplace_back(0.f, 0, width, height, 0.f, 1.f);
 			pipelineCiPack.scissors.emplace_back(VkOffset2D{}, windowSize);
 			/*pipelineCiPack.rasterizationStateCi.cullMode = VK_CULL_MODE_BACK_BIT;
 			pipelineCiPack.rasterizationStateCi.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;*/

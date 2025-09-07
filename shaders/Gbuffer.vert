@@ -9,20 +9,23 @@ layout (location = 1) out vec2 TexCoords;
 layout (location = 2) out vec3 worldNormal;
 
 layout(set = 0, binding = 0) uniform transformData {
-    mat4 model;
     mat4 view;
     mat4 proj;
 } transform;
 
+layout(set = 1, binding = 5) uniform modelTransformData {
+    mat4 model;
+} modelTransform;
+
 void main()
 {
     // View Space
-    vec4 viewFragPos = transform.view * transform.model * vec4(position, 1.0f);
+    vec4 viewFragPos = transform.view * modelTransform.model * vec4(position, 1.0f);
     viewPos = viewFragPos.xyz;
 
     TexCoords = texCoords;
 
-    mat3 normalMatrix = transpose(inverse(mat3(transform.view * transform.model)));
+    mat3 normalMatrix = transpose(inverse(mat3(transform.view * modelTransform.model)));
     worldNormal = normalMatrix * normal;
 
     gl_Position = transform.proj * viewFragPos;

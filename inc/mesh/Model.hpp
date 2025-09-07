@@ -64,13 +64,40 @@ public:
     {
         return textureInfoList;
     }
+
+    descriptorSet& GetDescriptorSet()
+    {
+        return modelSet;
+    }
+
+    void InitUnifom()
+    {
+        modelInfo.Create(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+        VkDescriptorBufferInfo bufferInfoMat = {
+        .buffer = modelInfo,
+        .offset = 0,
+        .range = VK_WHOLE_SIZE
+        };
+        modelSet.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5);
+    }
+
+    void LoadModelInfoToDescriptorSet()
+    {
+        //modelSet.Write(textureInfoList, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0);
+        for (int i = 0; i < textureInfoList.size(); i++) {
+            modelSet.Write(textureInfoList[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i);
+        }
+        modelInfo.TransferData(&this->model, sizeof(glm::mat4), 0);
+    }
 private:
     std::vector<Mesh> meshes;
     std::vector<texture2d> textureList;
     std::vector<sampler> samplerList;
     std::vector<VkDescriptorImageInfo> textureInfoList;
+    descriptorSet modelSet;
     std::string directory;
     glm::mat4 model = glm::mat4(1.f);
+    uniformBuffer modelInfo;
 
 
     void ProcessNode(aiNode* node, const aiScene* scene)

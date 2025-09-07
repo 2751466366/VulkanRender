@@ -12,7 +12,7 @@ public:
     glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
     float fov = 45.f;
     float znear = 0.1f;
-    float zfar = 100.f;
+    float zfar = 1000.f;
     void SetProj(int width, int height)
     {
         projection = glm::perspective(fov, float(width) / float(height), znear, zfar);

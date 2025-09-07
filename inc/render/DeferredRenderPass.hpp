@@ -224,11 +224,15 @@ public:
 		//Composition
 		VkDescriptorSetLayoutBinding descriptorSetLayoutBindings_composition[] = {
 			// G Buffers
-			{ 0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 4, VK_SHADER_STAGE_FRAGMENT_BIT },
 			// sky box
 			{ 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			{ 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
 			// invMat
-			{ 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT }
+			{ 5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT },
+			{ 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }
 		};
 		descriptorSetLayoutCreateInfo.bindingCount =
 			GET_ARRAY_NUM(descriptorSetLayoutBindings_composition);
@@ -240,9 +244,9 @@ public:
 
 
 		// record layout data for create descriptorPool
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 3);
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6);
-		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2);
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 4);
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 9);
+		AddDescriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6);
 		AddSetsNum(3);
 	}
 	void CreatePipeline()
@@ -272,6 +276,7 @@ public:
 			pipelineCiPack.vertexInputAttributes.emplace_back(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoords));
 			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			pipelineCiPack.viewports.emplace_back(0.f, float(windowSize.height), float(windowSize.width), -float(windowSize.height), 0.f, 1.f);
+			//pipelineCiPack.viewports.emplace_back(0.f, 0.0, float(windowSize.width), float(windowSize.height), 0.f, 1.f);
 			pipelineCiPack.scissors.emplace_back(VkOffset2D{}, windowSize);
 			pipelineCiPack.rasterizationStateCi.cullMode = VK_CULL_MODE_BACK_BIT;
 			pipelineCiPack.rasterizationStateCi.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -292,8 +297,6 @@ public:
 			pipelineCiPack.createInfo.layout = pipelineLayouts[1];
 			pipelineCiPack.createInfo.subpass = 1;
 			pipelineCiPack.createInfo.pStages = shaderStageCreateInfos_composition;
-			pipelineCiPack.vertexInputStateCi.vertexBindingDescriptionCount = 0;
-			pipelineCiPack.vertexInputStateCi.vertexAttributeDescriptionCount = 0;
 			pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 			pipelineCiPack.colorBlendStateCi.attachmentCount = 1;
 			pipelines[1].Create(pipelineCiPack);

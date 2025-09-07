@@ -82,10 +82,6 @@ public:
 	void CreatePipelineLayout()
 	{
 		pipelineLayouts.resize(1);
-		//VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-		//		.bindingCount = (uint32_t)0,
-		//};
-		//descriptorSetLayouts[0].Create(descriptorSetLayoutCreateInfo);
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
 			.setLayoutCount = 0,
@@ -112,7 +108,8 @@ public:
 		pipelineCiPack.vertexInputAttributes.emplace_back(1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal));
 		pipelineCiPack.vertexInputAttributes.emplace_back(2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoords));
 		pipelineCiPack.inputAssemblyStateCi.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-		pipelineCiPack.viewports.emplace_back(0.f, height, width, -height, 0.f, 1.f);
+		//pipelineCiPack.viewports.emplace_back(0.f, height, width, -height, 0.f, 1.f);
+		pipelineCiPack.viewports.emplace_back(0.f, 0, width, height, 0.f, 1.f);
 		pipelineCiPack.scissors.emplace_back(VkOffset2D{}, windowSize);
 		/*pipelineCiPack.rasterizationStateCi.cullMode = VK_CULL_MODE_BACK_BIT;
 		pipelineCiPack.rasterizationStateCi.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;*/

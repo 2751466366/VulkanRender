@@ -856,8 +856,8 @@ namespace vulkan {
 			swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
 			if (!limitFrameRate)
 				for (size_t i = 0; i < surfacePresentModeCount; i++)
-					if (surfacePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-						swapchainCreateInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+					if (surfacePresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+						swapchainCreateInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 						break;
 					}
 
