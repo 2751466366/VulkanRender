@@ -147,7 +147,7 @@ public:
         irraTex.GenMipMap(commandBuffer);
 
 
-        prefilterTex.CreateImageView(VK_FORMAT_R16G16B16A16_SFLOAT, { 128, 128 }, 8);
+        prefilterTex.CreateImageView(VK_FORMAT_R16G16B16A16_SFLOAT, { 128, 128 }, 4);
         prefilterRenderPass.CreateFaceViews(prefilterTex, true);
         prefilterRenderPass.vertPath = "shaders/texture/PrefilterIBL.vert.spv";
         prefilterRenderPass.fragPath = "shaders/texture/PrefilterIBL.frag.spv";

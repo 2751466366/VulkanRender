@@ -98,7 +98,7 @@ public:
 	void RecordDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& layouts)
 	{
 		std::map<VkDescriptorType, uint32_t> typeMap;
-		for (VkDescriptorSetLayoutBinding element : layouts) {
+		for (const VkDescriptorSetLayoutBinding &element : layouts) {
 			AddDescriptorType(element.descriptorType, element.descriptorCount);
 		}
 		AddSetsNum(1);
@@ -126,7 +126,9 @@ public:
 			{ 7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
 			// transform
 			{ 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT },
-			{ 9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }
+			{ 9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+			// light info
+			{ 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }
 		};
 		RecordDescriptorSetLayout(descriptorSetLayoutBindings_composition);
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {

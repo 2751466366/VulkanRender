@@ -19,6 +19,26 @@ layout(binding = 9) uniform transformData {
     mat4 view;
 } transform;
 
+// Light source(s) informations
+struct LightObject
+{
+    vec3 position;
+    vec3 direction;
+    vec4 color;
+    float radius;
+};
+layout(binding = 10) uniform LightInfo {
+    uint pointLightNum;
+    uint dirLightNum;
+    LightObject pointLights[10];
+    LightObject dirLights[10];
+} lightInfo;
+
+uint pointMode = 1;
+uint directionalMode = 1;
+uint iblMode = 1;
+
+const float EPS = 1e-5;
 const float PI = 3.14159265359f;
 const float prefilterLODLevel = 4.0f;
 vec3 materialF0 = vec3(0.04f);
@@ -32,6 +52,8 @@ vec3 computeFresnelSchlick(float NdotV, vec3 F0);
 vec3 computeFresnelSchlickRoughness(float NdotV, vec3 F0, float roughness);
 float computeDistributionGGX(vec3 N, vec3 H, float roughness);
 float computeGeometryAttenuationGGXSmith(float NdotL, float NdotV, float roughness);
+
+vec3 colorSRGB(vec3 colorVector);
 
 void main() {
     vec3 envColor = texture(envMap, normalize(envMapCoords)).rgb;
@@ -49,7 +71,7 @@ void main() {
     vec3 diffuse = vec3(0.0f);
     vec3 specular = vec3(0.0f);
 
-    if(depth == 1.0f) {
+    if(abs(depth - 1.0) < EPS) {
         color = envColor;
     } else {
         vec3 V = normalize(- viewPos);
@@ -65,29 +87,84 @@ void main() {
         // Energy conservation
         vec3 kS = F;
         vec3 kD = vec3(1.0f) - kS;
-        kD *= 1.0f - metalness;
+        kD *= (1.0f - metalness);
 
+        if (pointMode == 1) {
+            for (int i = 0; i < lightInfo.pointLightNum; i++) {
+                vec3 L = normalize(lightInfo.pointLights[i].position - viewPos);
+                vec3 H = normalize(L + V);
 
-	    F = computeFresnelSchlickRoughness(NdotV, F0, roughness);
-        kS = F;
-        kD = vec3(1.0f) - kS;
-        kD *= 1.0f - metalness;
+                vec3 lightColor = colorLinear(lightInfo.pointLights[i].color.rgb);
+                float distanceL = length(lightInfo.pointLights[i].position - viewPos);
+                float attenuation = 1.0f / (distanceL * distanceL); // Quadratic attenuation
+                //float attenuation =
+                //    pow(saturate(1 - pow(distanceL / lightInfo.pointLights[i].radius, 4)), 2) /
+                //        (distanceL * distanceL + 1); // UE4 attenuation
 
-        // Diffuse irradiance computation
-        vec3 diffuseIrradiance = texture(envMapIrradiance, N * mat3(transform.view)).rgb;
-        diffuseIrradiance *= albedo;
+                // Light source dependent BRDF term(s)
+                float NdotL = saturate(dot(N, L));
+                // Radiance computation
+                vec3 kRadiance = lightColor * attenuation;
+                // Diffuse component computation
+                diffuse = albedo / PI;
+                // Disney diffuse term
+                float kDisney = KDisneyTerm(NdotL, NdotV, roughness);
+                // Distribution (GGX) computation (D term)
+                float D = computeDistributionGGX(N, H, roughness);
+                // Geometry attenuation (GGX-Smith) computation (G term)
+                float G = computeGeometryAttenuationGGXSmith(NdotL, NdotV, roughness);
+                // Specular component computation
+                specular = (F * D * G) / (4.0f * NdotL * NdotV + 0.0001f);
 
-        // Specular radiance computation
-        vec3 specularRadiance = textureLod(envMapPrefilter, R * mat3(transform.view), roughness * prefilterLODLevel).rgb;
-        vec2 brdfSampling = texture(envMapLUT, vec2(NdotV, roughness)).rg;
-        specularRadiance *= F * brdfSampling.x + brdfSampling.y;
+                color += (diffuse * kD + specular) * kRadiance * NdotL;
+            }
+        }
+        if (directionalMode == 1) {
+            for (int i = 0; i < lightInfo.dirLightNum; i++) {
+                vec3 L = normalize(- lightInfo.dirLights[i].direction);
+                vec3 H = normalize(L + V);
 
-        vec3 ambientIBL = (diffuseIrradiance * kD) + specularRadiance;
+                vec3 lightColor = colorLinear(lightInfo.dirLights[i].color.rgb);
 
-        color += ambientIBL;
+                // Light source dependent BRDF term(s)
+                float NdotL = saturate(dot(N, L));
+                // Diffuse component computation
+                diffuse = albedo / PI;
+                // Disney diffuse term
+                float kDisney = KDisneyTerm(NdotL, NdotV, roughness);
+                // Distribution (GGX) computation (D term)
+                float D = computeDistributionGGX(N, H, roughness);
+                // Geometry attenuation (GGX-Smith) computation (G term)
+                float G = computeGeometryAttenuationGGXSmith(NdotL, NdotV, roughness);
+                // Specular component computation
+                specular = (F * D * G) / (4.0f * NdotL * NdotV + 0.0001f);
+
+                color += (diffuse * kD + specular) * lightColor * NdotL;
+            }
+        }
+        if (iblMode == 1) {
+	        F = computeFresnelSchlickRoughness(NdotV, F0, roughness);
+            kS = F;
+            kD = vec3(1.0f) - kS;
+            kD *= (1.0f - metalness);
+
+            // Diffuse irradiance computation
+            vec3 diffuseIrradiance = texture(envMapIrradiance, N * mat3(transform.view)).rgb;
+            diffuseIrradiance *= albedo;
+
+            // Specular radiance computation
+            vec3 specularRadiance = textureLod(envMapPrefilter, R * mat3(transform.view), roughness * prefilterLODLevel).rgb;
+            vec2 brdfSampling = texture(envMapLUT, vec2(NdotV, roughness)).rg;
+            specularRadiance *= (F * brdfSampling.x + brdfSampling.y);
+
+            vec3 ambientIBL = (diffuseIrradiance * kD) + specularRadiance;
+
+            color += ambientIBL;
+        }
 
         color *= ao;
 	}
+    color = colorSRGB(color);
     o_Color = vec4(color, 1.0);
 }
 
@@ -160,4 +237,11 @@ float computeGeometryAttenuationGGXSmith(float NdotL, float NdotV, float roughne
     float ggxV = (2.0f * NdotV) / (NdotV + sqrt(NdotV2 + kRough2 * (1.0f - NdotV2)));
 
     return ggxL * ggxV;
+}
+
+vec3 colorSRGB(vec3 colorVector)
+{
+  vec3 srgbColor = pow(colorVector.rgb, vec3(1.0f / 2.2f));
+
+  return srgbColor;
 }

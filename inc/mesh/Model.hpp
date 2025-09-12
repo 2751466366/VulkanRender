@@ -79,14 +79,13 @@ public:
         .range = VK_WHOLE_SIZE
         };
         modelSet.Write(bufferInfoMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5);
-    }
-
-    void LoadModelInfoToDescriptorSet()
-    {
-        //modelSet.Write(textureInfoList, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0);
         for (int i = 0; i < textureInfoList.size(); i++) {
             modelSet.Write(textureInfoList[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i);
         }
+    }
+
+    void UpdateDescriptorSet()
+    {
         modelInfo.TransferData(&this->model, sizeof(glm::mat4), 0);
     }
 private:
@@ -112,12 +111,6 @@ private:
         {
             this->ProcessNode(node->mChildren[i], scene);
         }
-
-        /*uint32_t totalMeshSize = 0;
-        std::vector<aiNode*> nodeList;
-        for (uint32_t i = 0; i < node->mNumChildren; i++) {
-            totalMeshSize += node->mChildren[i].
-        }*/
     }
 
 

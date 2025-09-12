@@ -1,11 +1,13 @@
 #include "GlfwGeneral.hpp"
-#include "DeferredRenderPass.hpp"
 #include "GBuffersRenderPass.hpp"
 #include "LightingRenderPass.hpp"
 #include "Camera.hpp"
 #include "Model.hpp"
 #include "TextureCube.hpp"
 #include "IBLWrapper.hpp"
+#include "Light.hpp"
+
+const int MAX_LIGHT_NUM = 10;
 
 float lastFrame = 0.0f;
 bool firstMouse = true;
@@ -34,6 +36,15 @@ int main()
     glfwSetCursorPosCallback(pWindow, mouseCallback);
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
+    LightObject pointLightObjs[MAX_LIGHT_NUM] = {  };
+    LightObject dirLightObjs[MAX_LIGHT_NUM] = {  };
+    uint32_t pointLightNum = 0;
+    uint32_t dirLightNum = 0;
+   /* pointLightObjs[pointLightNum++] = { .position = glm::vec3(10, 0, -10),  .color = glm::vec4(0, 0, 1, 1) };
+    pointLightObjs[pointLightNum++] = { .position = glm::vec3(-10, 0, -10), .color = glm::vec4(1, 0, 0, 1) };
+    dirLightObjs[dirLightNum++] = { .direction = glm::vec3(0, -1, 0), .color = glm::vec4(1, 1, 1, 1) };*/
+
+
     Mesh quad;
     quad.LoadQuad();
 
@@ -59,15 +70,15 @@ int main()
     objectModel.SetWorldPos(glm::vec3(0, 0, -30));
     gBufferRP.AllocateModelSet(objectModel.GetDescriptorSet());
     objectModel.InitUnifom();
-    objectModel.LoadModelInfoToDescriptorSet();
+    objectModel.UpdateDescriptorSet();
 
     Model objectModel1;
     objectModel1.LoadModel("resource/models/shaderball/shaderball.obj");
-    objectModel1.LoadTexuture("resource/textures/pbr/rustediron");
-    objectModel1.SetWorldPos(glm::vec3(0, 0, 30));
+    objectModel1.LoadTexuture("resource/textures/pbr/gold");
+    objectModel1.SetWorldPos(glm::vec3(30, 0, -30));
     gBufferRP.AllocateModelSet(objectModel1.GetDescriptorSet());
     objectModel1.InitUnifom();
-    objectModel1.LoadModelInfoToDescriptorSet();
+    objectModel1.UpdateDescriptorSet();
 
     camera.SetProj(gBufferRP.windowSize.width, gBufferRP.windowSize.height);
 
@@ -82,12 +93,13 @@ int main()
     uniformBuffer uniformBuffer_lighting(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     uniformBuffer_lighting.TransferData(&camera.view, sizeof(glm::mat4), 0);
 
-    fence fence;
-	semaphore semaphore_imageIsAvailable;
-	semaphore semaphore_renderingIsOver;
-	commandBuffer commandBuffer;
-	commandPool commandPool(graphicsBase::Base().QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-	commandPool.AllocateBuffers(commandBuffer);
+    // uniform std140 align
+    uint32_t size = 16 + sizeof(LightObject) * MAX_LIGHT_NUM * 2;
+    uniformBuffer lightInfoBuf(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    lightInfoBuf.TransferData(&pointLightNum, sizeof(uint32_t), 0);
+    lightInfoBuf.TransferData(&dirLightNum,   sizeof(uint32_t), sizeof(uint32_t));
+    lightInfoBuf.TransferData(pointLightObjs, sizeof(LightObject) * MAX_LIGHT_NUM, 16);
+    lightInfoBuf.TransferData(dirLightObjs,   sizeof(LightObject) * MAX_LIGHT_NUM, 16 + sizeof(LightObject) * MAX_LIGHT_NUM);
 
     VkDescriptorBufferInfo bufferInfoMat = {
         .buffer = uniformBufferMat,
@@ -101,6 +113,11 @@ int main()
     };
     VkDescriptorBufferInfo bufferInfoMat_lighting = {
         .buffer = uniformBuffer_lighting,
+        .offset = 0,
+        .range = VK_WHOLE_SIZE
+    };
+    VkDescriptorBufferInfo bufferLightInfo = {
+        .buffer = lightInfoBuf,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
@@ -132,6 +149,7 @@ int main()
 
     compositionLayout.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
     compositionLayout.Write(bufferInfoMat_lighting, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9);
+    compositionLayout.Write(bufferLightInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10);
 
     VkClearValue gbufferClearValues[] = {
         {.color = {0.0, 0.0, 0.0, 1.0} }, // w represents depth
@@ -141,6 +159,14 @@ int main()
         {.depthStencil = { 1.f, 0 } }
     };
     VkClearValue lightingClearValues = { .color = {} };
+
+
+    fence fence;
+    semaphore semaphore_imageIsAvailable;
+    semaphore semaphore_renderingIsOver;
+    commandBuffer commandBuffer;
+    commandPool commandPool(graphicsBase::Base().QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+    commandPool.AllocateBuffers(commandBuffer);
 
     while (!glfwWindowShouldClose(pWindow)) {
         while (glfwGetWindowAttrib(pWindow, GLFW_ICONIFIED))
