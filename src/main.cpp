@@ -32,7 +32,6 @@ int main()
     stbi_set_flip_vertically_on_load(true);
 
     glfwSetMouseButtonCallback(pWindow, mouseButtonCallback);
-    //glfwSetKeyCallback(pWindow, keyCallback);
     glfwSetCursorPosCallback(pWindow, mouseCallback);
     glfwSetInputMode(pWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
@@ -86,12 +85,12 @@ int main()
     uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), 0);
     uniformBufferMat.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4));
 
-    uniformBuffer uniformBufferInvMat(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    uniformBufferInvMat.TransferData(&camera.invView, sizeof(glm::mat4), 0);
-    uniformBufferInvMat.TransferData(&camera.invProj, sizeof(glm::mat4), sizeof(glm::mat4));
+    uniformBuffer uniformDataForLightingVert(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    uniformDataForLightingVert.TransferData(&camera.invView, sizeof(glm::mat4), 0);
+    uniformDataForLightingVert.TransferData(&camera.invProj, sizeof(glm::mat4), sizeof(glm::mat4));
 
-    uniformBuffer uniformBuffer_lighting(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    uniformBuffer_lighting.TransferData(&camera.view, sizeof(glm::mat4), 0);
+    uniformBuffer uniformDataForLightingFrag(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    uniformDataForLightingFrag.TransferData(&camera.view, sizeof(glm::mat4), 0);
 
     // uniform std140 align
     uint32_t size = 16 + sizeof(LightObject) * MAX_LIGHT_NUM * 2;
@@ -106,13 +105,13 @@ int main()
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    VkDescriptorBufferInfo bufferInfoInvMat = {
-        .buffer = uniformBufferInvMat,
+    VkDescriptorBufferInfo bufferInfoLightingVert = {
+        .buffer = uniformDataForLightingVert,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    VkDescriptorBufferInfo bufferInfoMat_lighting = {
-        .buffer = uniformBuffer_lighting,
+    VkDescriptorBufferInfo bufferInfoLightingFrag = {
+        .buffer = uniformDataForLightingFrag,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
@@ -147,8 +146,8 @@ int main()
     { iblWrapper.integrateBRDFTexSampler, iblWrapper.integrateBRDFTex.ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     compositionLayout.Write(textureInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7, 0);
 
-    compositionLayout.Write(bufferInfoInvMat, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
-    compositionLayout.Write(bufferInfoMat_lighting, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9);
+    compositionLayout.Write(bufferInfoLightingVert, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
+    compositionLayout.Write(bufferInfoLightingFrag, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9);
     compositionLayout.Write(bufferLightInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10);
 
     VkClearValue gbufferClearValues[] = {
@@ -175,8 +174,8 @@ int main()
 
         camera.updateView();
         uniformBufferMat.TransferData(&camera.view, sizeof(glm::mat4), 0);
-        uniformBuffer_lighting.TransferData(&camera.view, sizeof(glm::mat4), 0);
-        uniformBufferInvMat.TransferData(&camera.invView, sizeof(glm::mat4), 0);
+        uniformDataForLightingFrag.TransferData(&camera.view, sizeof(glm::mat4), 0);
+        uniformDataForLightingVert.TransferData(&camera.invView, sizeof(glm::mat4), 0);
 
         graphicsBase::Base().SwapImage(semaphore_imageIsAvailable);
         auto i = graphicsBase::Base().CurrentImageIndex();
