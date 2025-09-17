@@ -50,7 +50,7 @@ public:
         for (int i = 0; i < 5; i++) {
             textureList[i].Create(
                 pathList[i].c_str(),
-                VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT
+                VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM
             );
             VkSamplerCreateInfo samplerCreateInfo = textureList[i].SamplerCreateInfo();
             samplerList[i].Create(samplerCreateInfo);

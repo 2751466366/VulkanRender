@@ -53,7 +53,7 @@ public:
 			{
 				.srcSubpass = VK_SUBPASS_EXTERNAL,
 				.dstSubpass = 0,
-				.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 				.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 				.srcAccessMask = 0,
 				.dstAccessMask = 0,
@@ -148,11 +148,11 @@ public:
 		pipelines.resize(1);
 		vertSh.Create("shaders/Lighting.vert.spv");
 		fragSh.Create("shaders/Lighting.frag.spv");
-		VkPipelineShaderStageCreateInfo shaderStageCreateInfos_composition[2] = {
+		auto Create = [&] {
+			VkPipelineShaderStageCreateInfo shaderStageCreateInfos_composition[2] = {
 			vertSh.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
 			fragSh.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
-		};
-		auto Create = [&] {
+			};
 			graphicsPipelineCreateInfoPack pipelineCiPack;
 			pipelineCiPack.createInfo.layout = pipelineLayouts[0];
 			pipelineCiPack.createInfo.renderPass = renderPass;
@@ -180,7 +180,6 @@ public:
 		};
 		auto Destroy = [&] {
 			pipelines[0].~pipeline();
-			pipelines[1].~pipeline();
 		};
 		graphicsBase::Base().AddCallback_CreateSwapchain(name, Create);
 		graphicsBase::Base().AddCallback_DestroySwapchain(name, Destroy);

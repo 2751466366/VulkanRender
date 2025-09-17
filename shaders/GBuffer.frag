@@ -22,7 +22,7 @@ float LinearizeDepth(float depth);
 vec3 computeTexNormal(vec3 viewNormal, vec3 texNormal);
 void main()
 {
-    vec3 texNormal = normalize(texture(texNormal, TexCoords).rgb);
+    vec3 texNormal = normalize(texture(texNormal, TexCoords).rgb * 2 - 1);
     texNormal.g = -texNormal.g;   // In case the normal map was made with DX3D coordinates system in mind
 
 	gPosition = vec4(viewPos, LinearizeDepth(gl_FragCoord.z));

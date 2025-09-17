@@ -227,11 +227,11 @@ public:
 		pipelines.resize(1);
 		vertSh.Create("shaders/GBuffer.vert.spv");
 		fragSh.Create("shaders/GBuffer.frag.spv");
-		VkPipelineShaderStageCreateInfo shaderStageCreateInfos_gBuffer[2] = {
+		auto Create = [&] {
+			VkPipelineShaderStageCreateInfo shaderStageCreateInfos_gBuffer[2] = {
 			vertSh.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
 			fragSh.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
-		};
-		auto Create = [&] {
+			};
 			//G-buffer
 			graphicsPipelineCreateInfoPack pipelineCiPack;
 			pipelineCiPack.createInfo.layout = pipelineLayouts[0];
@@ -263,7 +263,6 @@ public:
 		};
 		auto Destroy = [&] {
 			pipelines[0].~pipeline();
-			pipelines[1].~pipeline();
 		};
 		graphicsBase::Base().AddCallback_CreateSwapchain(name, Create);
 		graphicsBase::Base().AddCallback_DestroySwapchain(name, Destroy);

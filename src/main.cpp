@@ -74,7 +74,7 @@ int main()
 
     Model objectModel1;
     objectModel1.LoadModel("resource/models/shaderball/shaderball.obj");
-    objectModel1.LoadTexuture("resource/textures/pbr/gold");
+    objectModel1.LoadTexuture("resource/textures/pbr/mixed_brick_wall");
     objectModel1.SetWorldPos(glm::vec3(30, 0, -30));
     gBufferRP.AllocateModelSet(objectModel1.GetDescriptorSet());
     objectModel1.InitUnifom();
