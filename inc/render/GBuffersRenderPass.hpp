@@ -2,6 +2,7 @@
 #include "VkBase+.h"
 #include "common.h"
 #include "PipelineRenderPass.hpp"
+#include "GlfwGeneral.hpp"
 
 using namespace vulkan;
 class GBuffersRenderPass : public PipelineRenderPass {
@@ -126,6 +127,8 @@ public:
 			colorAttachments.resize(4);
 			depthStencilAttachments.resize(1);
 
+			windowSize = GetWindowSize();
+
 			// Position
 			colorAttachments[0].Create(VK_FORMAT_R16G16B16A16_SFLOAT, windowSize, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 			// Albedo + Roughness
@@ -232,6 +235,7 @@ public:
 			vertSh.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
 			fragSh.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
 			};
+			windowSize = GetWindowSize();
 			//G-buffer
 			graphicsPipelineCreateInfoPack pipelineCiPack;
 			pipelineCiPack.createInfo.layout = pipelineLayouts[0];

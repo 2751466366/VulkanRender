@@ -1,3 +1,4 @@
+#pragma once
 #include "VKBase.h"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -5,7 +6,7 @@
 
 GLFWwindow* pWindow;
 GLFWmonitor* pMonitor;
-const char* windowTitle = "EasyVK";
+const char* windowTitle = "VulkanRender";
 
 auto PreInitialization_EnableSrgb() {
 	static bool enableSrgb;//Static object will be zero-initialized at launch
@@ -125,4 +126,11 @@ void TitleFps() {
 		time0 = time1;
 		dframe = 0;
 	}
+}
+
+VkExtent2D GetWindowSize()
+{
+	int width, height;
+	glfwGetFramebufferSize(pWindow, &width, &height);
+	return { (uint32_t)width, (uint32_t)height };
 }

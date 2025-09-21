@@ -2,6 +2,8 @@
 #include "VkBase+.h"
 #include "common.h"
 #include "PipelineRenderPass.hpp"
+#include "GlfwGeneral.hpp"
+
 
 using namespace vulkan;
 class LightingRenderPass : public PipelineRenderPass {
@@ -71,7 +73,7 @@ public:
 		renderPass.Create(renderPassCreateInfo);
 		auto CreateFramebuffers = [&] {
 			framebuffers.resize(graphicsBase::Base().SwapchainImageCount());
-
+			windowSize = GetWindowSize();
 			VkImageView attachments[] = {
 				VK_NULL_HANDLE,
 			};
@@ -153,6 +155,7 @@ public:
 			vertSh.StageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT),
 			fragSh.StageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT)
 			};
+			windowSize = GetWindowSize();
 			graphicsPipelineCreateInfoPack pipelineCiPack;
 			pipelineCiPack.createInfo.layout = pipelineLayouts[0];
 			pipelineCiPack.createInfo.renderPass = renderPass;

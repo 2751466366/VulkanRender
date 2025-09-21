@@ -13,22 +13,22 @@ public:
     float fov = 45.f;
     float znear = 0.1f;
     float zfar = 1000.f;
-    void SetProj(int width, int height)
+    void Init(VkExtent2D windowSize)
     {
-        projection = glm::perspective(fov, float(width) / float(height), znear, zfar);
-        //projection[1][1] *= -1; // Invert Y axis
-
+        UpdateProj(windowSize);
+        UpdateView();
+    }
+    void UpdateProj(VkExtent2D windowSize)
+    {
+        projection = glm::perspective(fov, float(windowSize.width) / float(windowSize.height), znear, zfar);
         invProj = glm::inverse(projection);
-
-        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        invView = glm::transpose(view);
     }
-    void updateView()
+    void UpdateView()
     {
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         invView = glm::transpose(view);
     }
-    void setCameraPos(glm::vec3 pos)
+    void SetCameraPos(glm::vec3 pos)
     {
         cameraPos = pos;
     }

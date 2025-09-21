@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;.\inc\light;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;.\inc\light;.\inc\case;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -140,6 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\camera\Camera.hpp" />
+    <ClInclude Include="inc\case\IBLRenderCase.hpp" />
     <ClInclude Include="inc\common.h" />
     <ClInclude Include="inc\lighting\IBLWrapper.hpp" />
     <ClInclude Include="inc\light\Light.hpp" />
