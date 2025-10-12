@@ -17,6 +17,7 @@ layout(binding = 7) uniform sampler2D envMapLUT;
 
 layout(binding = 9) uniform transformData {
     mat4 view;
+    mat4 proj;
 } transform;
 
 // Light source(s) informations

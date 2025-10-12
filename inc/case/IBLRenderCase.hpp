@@ -2,6 +2,7 @@
 #include "GlfwGeneral.hpp"
 #include "GBuffersRenderPass.hpp"
 #include "LightingRenderPass.hpp"
+#include "LineRenderPass.hpp"
 #include "Camera.hpp"
 #include "Model.hpp"
 #include "TextureCube.hpp"
@@ -40,9 +41,9 @@ int main()
     LightObject dirLightObjs[MAX_LIGHT_NUM] = {  };
     uint32_t pointLightNum = 0;
     uint32_t dirLightNum = 0;
-    /* pointLightObjs[pointLightNum++] = { .position = glm::vec3(10, 0, -10),  .color = glm::vec4(0, 0, 1, 1) };
-     pointLightObjs[pointLightNum++] = { .position = glm::vec3(-10, 0, -10), .color = glm::vec4(1, 0, 0, 1) };
-     dirLightObjs[dirLightNum++] = { .direction = glm::vec3(0, -1, 0), .color = glm::vec4(1, 1, 1, 1) };*/
+    /*pointLightObjs[pointLightNum++] = { .position = glm::vec3(0, -0.5, 0),  .color = glm::vec4(0, 5, 5, 1) };
+    pointLightObjs[pointLightNum++] = { .position = glm::vec3(-10, 0, -10), .color = glm::vec4(1, 0, 0, 1) };
+    dirLightObjs[dirLightNum++] = { .direction = glm::vec3(0, -1, 0), .color = glm::vec4(1, 1, 1, 1) };*/
 
 
     Mesh quad;
@@ -61,6 +62,9 @@ int main()
     LightingRenderPass lightingRP;
     lightingRP.CreatePipelineRenderPass();
 
+    LineRenderPass lineRP;
+    lineRP.CreatePipelineRenderPass();
+
 
     Model objectModel;
     objectModel.LoadModel("resource/models/shaderball/shaderball.obj");
@@ -68,7 +72,9 @@ int main()
     objectModel.SetWorldPos(glm::vec3(0, 0, -30));
     gBufferRP.AllocateModelSet(objectModel.GetDescriptorSet());
     objectModel.InitUnifom();
-    objectModel.UpdateDescriptorSet();
+    objectModel.UpdateModelMat();
+    objectModel.BuildBVH();
+    lineRP.BindModelSet("objectModel", objectModel.GetModelMatUniform());
 
     Model livingroom;
     livingroom.LoadModel("resource/models/livingroom/livingroom.obj");
@@ -76,20 +82,17 @@ int main()
     livingroom.SetWorldPos(glm::vec3(0, -1, 0));
     gBufferRP.AllocateModelSet(livingroom.GetDescriptorSet());
     livingroom.InitUnifom();
-    livingroom.UpdateDescriptorSet();
+    livingroom.UpdateModelMat();
 
     camera.Init(GetWindowSize());
 
-    uniformBuffer gBufferTransformData(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    gBufferTransformData.TransferData(&camera.view, sizeof(glm::mat4), 0);
-    gBufferTransformData.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4));
+    uniformBuffer transformData(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    transformData.TransferData(&camera.view, sizeof(glm::mat4), 0);
+    transformData.TransferData(&camera.projection, sizeof(glm::mat4), sizeof(glm::mat4));
 
-    uniformBuffer lightingTransformData(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    lightingTransformData.TransferData(&camera.invView, sizeof(glm::mat4), 0);
-    lightingTransformData.TransferData(&camera.invProj, sizeof(glm::mat4), sizeof(glm::mat4));
-
-    uniformBuffer lightingTransformDataFrag(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    lightingTransformDataFrag.TransferData(&camera.view, sizeof(glm::mat4), 0);
+    uniformBuffer invTransformData(sizeof(glm::mat4) * 2, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    invTransformData.TransferData(&camera.invView, sizeof(glm::mat4), 0);
+    invTransformData.TransferData(&camera.invProj, sizeof(glm::mat4), sizeof(glm::mat4));
 
     // uniform std140 align
     uint32_t size = 16 + sizeof(LightObject) * MAX_LIGHT_NUM * 2;
@@ -99,18 +102,13 @@ int main()
     lightInfoData.TransferData(pointLightObjs, sizeof(LightObject) * MAX_LIGHT_NUM, 16);
     lightInfoData.TransferData(dirLightObjs, sizeof(LightObject) * MAX_LIGHT_NUM, 16 + sizeof(LightObject) * MAX_LIGHT_NUM);
 
-    VkDescriptorBufferInfo gBufferTransformDataDesc = {
-        .buffer = gBufferTransformData,
+    VkDescriptorBufferInfo transformDataBuffer = {
+        .buffer = transformData,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    VkDescriptorBufferInfo lightingTransformDataDesc = {
-        .buffer = lightingTransformData,
-        .offset = 0,
-        .range = VK_WHOLE_SIZE
-    };
-    VkDescriptorBufferInfo lightingTransformDataFragDesc = {
-        .buffer = lightingTransformDataFrag,
+    VkDescriptorBufferInfo invTransformDataBuffer = {
+        .buffer = invTransformData,
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
@@ -119,10 +117,12 @@ int main()
         .offset = 0,
         .range = VK_WHOLE_SIZE
     };
-    const descriptorSet& gBufferSetLayout = gBufferRP.GetGBufferSet();
-    const descriptorSet& compositionLayout = lightingRP.GetCompositionSet();
+    const descriptorSet& gBufferSet = gBufferRP.GetGBufferSet();
+    const descriptorSet& compositionSet = lightingRP.GetCompositionSet();
+    const descriptorSet& drawLineSet = lineRP.GetTransformSet();
 
-    gBufferSetLayout.Write(gBufferTransformDataDesc, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
+    gBufferSet.Write(transformDataBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
+    drawLineSet.Write(transformDataBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0);
 
     auto SetGbuffers = [&] {
         camera.UpdateProj(GetWindowSize());
@@ -131,7 +131,7 @@ int main()
         gBufferImageDesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         for (int i = 0; i < 4; i++) {
             gBufferImageDesc.imageView = gBufferRP.GetImageView(i);
-            compositionLayout.Write(gBufferImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, 0);
+            compositionSet.Write(gBufferImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, i, 0);
         }
     };
     SetGbuffers();
@@ -139,20 +139,20 @@ int main()
 
     VkDescriptorImageInfo iblImageDesc =
     { iblWrapper.cubeTex.sample, iblWrapper.cubeTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    compositionLayout.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 0);
+    compositionSet.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 0);
     iblImageDesc =
     { iblWrapper.irraTex.sample, iblWrapper.irraTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    compositionLayout.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 0);
+    compositionSet.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 0);
     iblImageDesc =
     { iblWrapper.prefilterTex.sample, iblWrapper.prefilterTex.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    compositionLayout.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 0);
+    compositionSet.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 0);
     iblImageDesc =
     { iblWrapper.integrateBRDFTexSampler, iblWrapper.integrateBRDFTex.ImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    compositionLayout.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7, 0);
+    compositionSet.Write(iblImageDesc, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7, 0);
 
-    compositionLayout.Write(lightingTransformDataDesc, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
-    compositionLayout.Write(lightingTransformDataFragDesc, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9);
-    compositionLayout.Write(lightInfoDataDesc, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10);
+    compositionSet.Write(invTransformDataBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
+    compositionSet.Write(transformDataBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9);
+    compositionSet.Write(lightInfoDataDesc, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10);
 
     VkClearValue gbufferClearValues[] = {
         {.color = {0.0, 0.0, 0.0, 1.0} }, // w represents depth
@@ -177,9 +177,8 @@ int main()
         processInput(pWindow);
 
         camera.UpdateView();
-        gBufferTransformData.TransferData(&camera.view, sizeof(glm::mat4), 0);
-        lightingTransformDataFrag.TransferData(&camera.view, sizeof(glm::mat4), 0);
-        lightingTransformData.TransferData(&camera.invView, sizeof(glm::mat4), 0);
+        transformData.TransferData(&camera.view, sizeof(glm::mat4), 0);
+        invTransformData.TransferData(&camera.invView, sizeof(glm::mat4), 0);
 
         graphicsBase::Base().SwapImage(semaphore_imageIsAvailable);
         auto i = graphicsBase::Base().CurrentImageIndex();
@@ -188,7 +187,7 @@ int main()
 
         gBufferRP.renderPass.CmdBegin(commandBuffer, gBufferRP.framebuffers[0], { {}, gBufferRP.windowSize }, gbufferClearValues);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelines[0]);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 0, 1, gBufferSetLayout.Address(), 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 0, 1, gBufferSet.Address(), 0, nullptr);
 
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 1, 1, livingroom.GetDescriptorSet().Address(), 0, nullptr);
@@ -198,13 +197,37 @@ int main()
 
         gBufferRP.renderPass.CmdEnd(commandBuffer);
 
+
         lightingRP.renderPass.CmdBegin(commandBuffer, lightingRP.framebuffers[i], { {}, lightingRP.windowSize }, lightingClearValues);
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightingRP.pipelines[0]);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightingRP.pipelineLayouts[0], 0, 1, compositionLayout.Address(), 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightingRP.pipelineLayouts[0], 0, 1, compositionSet.Address(), 0, nullptr);
         quad.Draw(commandBuffer);
 
         lightingRP.renderPass.CmdEnd(commandBuffer);
+
+        VkImageMemoryBarrier bar{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask = 0,
+            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .image = graphicsBase::Base().SwapchainImage(i),
+            .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1}
+        };
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0, 0, nullptr, 0, nullptr, 1, &bar);
+
+        lineRP.renderPass.CmdBegin(commandBuffer, lineRP.framebuffers[i], { {}, lineRP.windowSize }, lightingClearValues);
+        
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lineRP.pipelines[0]);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lineRP.pipelineLayouts[0], 0, 1, drawLineSet.Address(), 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lineRP.pipelineLayouts[0], 1, 1, lineRP.GetModelSet("objectModel").Address(), 0, nullptr);
+        objectModel.DrawBVH(commandBuffer, 3);
+        lineRP.renderPass.CmdEnd(commandBuffer);
 
         commandBuffer.End();
 

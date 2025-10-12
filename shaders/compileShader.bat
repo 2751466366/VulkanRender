@@ -4,6 +4,8 @@ glslc -c Composition.frag
 glslc -c Composition.vert
 glslc -c Lighting.frag
 glslc -c Lighting.vert
+glslc -c DrawLine.frag
+glslc -c DrawLine.vert
 
 cd texture
 glslc -c LatlongToCube.frag

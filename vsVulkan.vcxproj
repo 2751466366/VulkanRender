@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;.\inc\light;.\inc\case;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;.\inc\light;.\inc\case;.\inc\bvh;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -136,9 +136,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="inc\bvh\Morton.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\bvh\BVH.hpp" />
+    <ClInclude Include="inc\bvh\Morton.h" />
     <ClInclude Include="inc\camera\Camera.hpp" />
     <ClInclude Include="inc\case\IBLRenderCase.hpp" />
     <ClInclude Include="inc\common.h" />

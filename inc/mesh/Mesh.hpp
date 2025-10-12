@@ -1,6 +1,7 @@
 #pragma once
 #include "EasyVKStart.h"
 #include "common.h"
+#include "BVH.hpp"
 
 class Mesh {
 public:
@@ -87,7 +88,12 @@ public:
         model = glm::translate(model, pos);
     }
 
-    void InitVulkanData()
+    void BuildBVH()
+    {
+        bvh.Init(vertices, indices);
+    }
+
+    void PrepareMeshData()
     {
         if (isInit) {
             std::cout << "mesh already init\n";
@@ -100,10 +106,66 @@ public:
         indexBuffer.TransferData(indices.data(), indices.size() * sizeof(uint32_t));
     }
 
+    void PrepareVBHData(uint32_t level, bool needRecreate)
+    {
+        const std::vector<std::array<glm::vec3, 2>>& boxList = bvh.GetBoxList();
+        std::vector<int> nodes = bvh.GetNodesAtLevel(level);
+        std::cout << "nodes: [ ";
+        for (int i = 0; i < nodes.size(); i++) {
+            std::cout << nodes[i] << ", ";
+        }
+        std::cout << "]\n";
+        bvhVertices.resize(nodes.size() * 8);
+        bvhIndices.resize(nodes.size() * 24);
+        for (int n = 0; n < nodes.size(); n++) {
+            const std::array<glm::vec3, 2>& box = boxList[nodes[n]];
+            const glm::vec3 vmin  = box[0];
+            const glm::vec3 vmax  = box[1];
+            const glm::vec3 vmid  = (vmax + vmin) * 0.5f;
+            glm::vec3 color       = CoordToColor(vmid);
+            int vertexOffset      = 8 * n;
+            int indexOffset       = 24 * n;
+
+            glm::vec3 aabb[8] = {
+                {vmin.x, vmin.y, vmin.z},  // 0
+                {vmax.x, vmin.y, vmin.z},  // 1
+                {vmin.x, vmax.y, vmin.z},  // 2
+                {vmax.x, vmax.y, vmin.z},  // 3
+                {vmin.x, vmin.y, vmax.z},  // 4
+                {vmax.x, vmin.y, vmax.z},  // 5
+                {vmin.x, vmax.y, vmax.z},  // 6
+                {vmax.x, vmax.y, vmax.z}   // 7
+            };
+            uint32_t faces[24] = {
+                0,1,  1,3,  3,2,  2,0,
+                4,5,  5,7,  7,6,  6,4,
+                0,4,  1,5,  2,6,  3,7
+            };
+            for (int v = 0; v < 8; v++) {
+                bvhVertices[vertexOffset + v] = {
+                    .position = aabb[v],
+                    .color = color
+                };
+            }
+            for (int i = 0; i < 24; i++) {
+                bvhIndices[indexOffset + i] = vertexOffset + faces[i];
+            }
+        }
+        if (!needRecreate) {
+            bvhVertexBuffer.Create(bvhVertices.size() * sizeof(PosColor));
+            bvhIndexuffer.Create(bvhIndices.size() * sizeof(uint32_t));
+        } else {
+            bvhVertexBuffer.Recreate(bvhVertices.size() * sizeof(PosColor));
+            bvhIndexuffer.Recreate(bvhIndices.size() * sizeof(uint32_t));
+        }
+        bvhVertexBuffer.TransferData(bvhVertices.data(), bvhVertices.size() * sizeof(PosColor));
+        bvhIndexuffer.TransferData(bvhIndices.data(), bvhIndices.size() * sizeof(uint32_t));
+    }
+
     void Draw(const commandBuffer& commandBuffer)
     {
         if (!isInit) {
-            InitVulkanData();
+            PrepareMeshData();
         }
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffer.Address(), &offset);
@@ -111,8 +173,32 @@ public:
         vkCmdDrawIndexed(commandBuffer, indices.size(), 1, 0, 0, 0);
     }
 
+    void DrawBVH(const commandBuffer& commandBuffer, int level)
+    {
+        if (!bvh.IsInited()) {
+            return;
+        }
+        bool needRecreate = (levelOfData != -1);
+        level = std::min(level, bvh.GetMaxLevel());
+        if (level != levelOfData) {
+            PrepareVBHData(level, needRecreate);
+            levelOfData = level;
+        }
+        VkDeviceSize offset = 0;
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, bvhVertexBuffer.Address(), &offset);
+        vkCmdBindIndexBuffer(commandBuffer, bvhIndexuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, bvhIndices.size(), 1, 0, 0, 0);
+    }
+
 private:
     bool isInit = false;
-    vertexBuffer vertexBuffer;
-    indexBuffer indexBuffer;
+    vulkan::vertexBuffer vertexBuffer;
+    vulkan::indexBuffer indexBuffer;
+
+    BVH bvh;
+    int levelOfData = -1;
+    std::vector<PosColor> bvhVertices;
+    std::vector<uint32_t> bvhIndices;
+    vulkan::vertexBuffer bvhVertexBuffer;
+    vulkan::indexBuffer bvhIndexuffer;
 };

@@ -21,10 +21,22 @@ public:
         this->ProcessNode(scene->mRootNode, scene);
     }
 
+    void BuildBVH()
+    {
+        for (uint32_t i = 0; i < this->meshes.size(); i++)
+            this->meshes[i].BuildBVH();
+    }
+
     void Draw(const commandBuffer& commandBuffer)
     {
         for (uint32_t i = 0; i < this->meshes.size(); i++)
             this->meshes[i].Draw(commandBuffer);
+    }
+
+    void DrawBVH(const commandBuffer& commandBuffer, int level)
+    {
+        for (uint32_t i = 0; i < this->meshes.size(); i++)
+            this->meshes[i].DrawBVH(commandBuffer, level);
     }
 
     void SetModel(glm::mat4 model) { this->model = model; }
@@ -72,9 +84,9 @@ public:
 
     void InitUnifom()
     {
-        modelInfo.Create(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+        modelMatBuffer.Create(sizeof(glm::mat4), VK_BUFFER_USAGE_TRANSFER_DST_BIT);
         VkDescriptorBufferInfo bufferInfoMat = {
-        .buffer = modelInfo,
+        .buffer = modelMatBuffer,
         .offset = 0,
         .range = VK_WHOLE_SIZE
         };
@@ -84,10 +96,12 @@ public:
         }
     }
 
-    void UpdateDescriptorSet()
+    void UpdateModelMat()
     {
-        modelInfo.TransferData(&this->model, sizeof(glm::mat4), 0);
+        modelMatBuffer.TransferData(&this->model, sizeof(glm::mat4), 0);
     }
+
+    const uniformBuffer& GetModelMatUniform() { return modelMatBuffer; }
 private:
     std::vector<Mesh> meshes;
     std::vector<texture2d> textureList;
@@ -96,7 +110,7 @@ private:
     descriptorSet modelSet;
     std::string directory;
     glm::mat4 model = glm::mat4(1.f);
-    uniformBuffer modelInfo;
+    uniformBuffer modelMatBuffer;
 
 
     void ProcessNode(aiNode* node, const aiScene* scene)
@@ -150,7 +164,9 @@ private:
         for (uint32_t i = 0; i < mesh->mNumFaces; i++)
         {
             aiFace face = mesh->mFaces[i];
-
+            if (face.mNumIndices != 3) {
+                std::cout << " face idx num = " << face.mNumIndices << "\n";
+            }
             for (uint32_t j = 0; j < face.mNumIndices; j++)
                 indices.push_back(face.mIndices[j]);
         }
