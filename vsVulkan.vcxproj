@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;.\inc\light;.\inc\case;.\inc\bvh;$(IncludePath)</IncludePath>
+    <IncludePath>.\opensource;.\inc;.\inc\vkWrapper;.\inc\camera;.\inc\mesh;.\inc\texture;.\inc\lighting;.\inc\render;.\inc\light;.\inc\case;.\inc\bvh;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -112,8 +112,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>.\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;GKlib.lib;glfw3.lib;meshoptimizer.lib;vulkan-1.lib;metis.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VK_SDK_PATH)\lib;.\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp.lib;GKlib.lib;glfw3.lib;meshoptimizer.lib;metis.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y /E /I "$(ProjectDir)dll\*" "$(OutDir)\"</Command>

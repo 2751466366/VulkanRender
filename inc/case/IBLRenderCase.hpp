@@ -165,8 +165,11 @@ int main()
 
 
     fence fence;
-    semaphore semaphore_imageIsAvailable;
-    semaphore semaphore_renderingIsOver;
+    //semaphore semaphore_imageIsAvailable;
+    //semaphore semaphore_renderingIsOver;
+    static uint32_t currentFrame = 0;
+    std::vector<semaphore> semaphore_imageIsAvailable(graphicsBase::Base().SwapchainImageCount());
+    std::vector<semaphore> semaphore_renderingIsOver(graphicsBase::Base().SwapchainImageCount());
     commandBuffer commandBuffer;
     commandPool commandPool(graphicsBase::Base().QueueFamilyIndex_Graphics(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     commandPool.AllocateBuffers(commandBuffer);
@@ -180,7 +183,7 @@ int main()
         transformData.TransferData(&camera.view, sizeof(glm::mat4), 0);
         invTransformData.TransferData(&camera.invView, sizeof(glm::mat4), 0);
 
-        graphicsBase::Base().SwapImage(semaphore_imageIsAvailable);
+        graphicsBase::Base().SwapImage(semaphore_imageIsAvailable[currentFrame]);
         auto i = graphicsBase::Base().CurrentImageIndex();
 
         commandBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -231,13 +234,14 @@ int main()
 
         commandBuffer.End();
 
-        graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, semaphore_imageIsAvailable, semaphore_renderingIsOver, fence);
-        graphicsBase::Base().PresentImage(semaphore_renderingIsOver);
+        graphicsBase::Base().SubmitCommandBuffer_Graphics(commandBuffer, semaphore_imageIsAvailable[currentFrame], semaphore_renderingIsOver[currentFrame], fence);
+        graphicsBase::Base().PresentImage(semaphore_renderingIsOver[currentFrame]);
 
         glfwPollEvents();
         TitleFps();
 
         fence.WaitAndReset();
+        currentFrame = (currentFrame + 1) % graphicsBase::Base().SwapchainImageCount();
     }
     TerminateWindow();
     return 0;
