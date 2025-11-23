@@ -1,2 +1,2 @@
-运行效果
+# running
 <img src="./asset/running.png"/>
