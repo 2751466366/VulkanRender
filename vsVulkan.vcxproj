@@ -175,6 +175,7 @@
     <Library Include="lib\vulkan-1.lib" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="README.md" />
     <None Include="resource\texture\hdr\appart.hdr" />
     <None Include="resource\texture\hdr\canyon.hdr" />
     <None Include="resource\texture\hdr\circus.hdr" />

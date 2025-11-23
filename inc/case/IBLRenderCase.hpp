@@ -51,7 +51,6 @@ int main()
 
     IBLWrapper iblWrapper;
     iblWrapper.IBLSetup("resource/textures/hdr/golden_gate_hills_2k.hdr");
-    //iblWrapper.IBLSetup("resource/textures/hdr/canyon.hdr");
 
     TexuteCube skyBox;
     LoadSkyBox(skyBox);
@@ -76,13 +75,16 @@ int main()
     objectModel.BuildBVH();
     lineRP.BindModelSet("objectModel", objectModel.GetModelMatUniform());
 
-    Model livingroom;
-    livingroom.LoadModel("resource/models/livingroom/livingroom.obj");
-    livingroom.LoadTexuture("resource/textures/pbr/mixed_brick_wall");
-    livingroom.SetWorldPos(glm::vec3(0, -1, 0));
-    gBufferRP.AllocateModelSet(livingroom.GetDescriptorSet());
-    livingroom.InitUnifom();
-    livingroom.UpdateModelMat();
+    Model shaderball2;
+    shaderball2.LoadModel("resource/models/shaderball/shaderball2.obj");
+    shaderball2.LoadTexuture("resource/textures/pbr/woodfloor");
+    glm::mat4 modelMat = glm::mat4(1.0f);
+    modelMat = glm::translate(modelMat, glm::vec3(10, -3, -10));
+    modelMat = glm::scale(modelMat, glm::vec3(3, 3, 3));
+    shaderball2.SetModel(modelMat);
+    gBufferRP.AllocateModelSet(shaderball2.GetDescriptorSet());
+    shaderball2.InitUnifom();
+    shaderball2.UpdateModelMat();
 
     camera.Init(GetWindowSize());
 
@@ -193,8 +195,8 @@ int main()
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 0, 1, gBufferSet.Address(), 0, nullptr);
 
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 1, 1, livingroom.GetDescriptorSet().Address(), 0, nullptr);
-        livingroom.Draw(commandBuffer);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 1, 1, shaderball2.GetDescriptorSet().Address(), 0, nullptr);
+        shaderball2.Draw(commandBuffer);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gBufferRP.pipelineLayouts[0], 1, 1, objectModel.GetDescriptorSet().Address(), 0, nullptr);
         objectModel.Draw(commandBuffer);
 

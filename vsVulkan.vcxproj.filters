@@ -126,6 +126,7 @@
     <None Include="shaders\texture\PrefilterIBL.frag" />
     <None Include="shaders\texture\IntegrateBRDF.vert" />
     <None Include="shaders\texture\IntegrateBRDF.frag" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\texture\skybox\back.jpg">
